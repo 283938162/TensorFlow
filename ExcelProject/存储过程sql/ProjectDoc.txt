@@ -1,0 +1,4 @@
+cell 小区
+mtd  manager_task_detail不是别名  而是用来----mtd保存cellquestion IS NULL AND cellproject IS NULL为空的工单
+
+mtd_reason_suggest_1 2 ... 临时表

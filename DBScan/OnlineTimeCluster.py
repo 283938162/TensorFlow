@@ -6,25 +6,25 @@ import matplotlib.pyplot as plt
 filePath = '/Users/anus/PycharmProjects/TensorFlow/DBScan/学生月上网时间分布-TestData.txt'
 mac2id = dict()
 online_times = []
-f = open(filePath, encoding = 'utf-8')
+f = open(filePath, encoding='utf-8')
 for line in f:
 
-	# 读取每条数据中的mac地址，
-	# 开始上网时间，上网时长
+    # 读取每条数据中的mac地址，
+    # 开始上网时间，上网时长
 
-	mac = line.split(',')[2]
-	online_time = int(line.split(',')[6])
-	start_time = int(line.split(',')[4].split(' ')[1].split(':')[0])
+    mac = line.split(',')[2]
+    online_time = int(line.split(',')[6])
+    start_time = int(line.split(',')[4].split(' ')[1].split(':')[0])
 
-	# mac2id是一个字典：
-	# key是mac地址
-	# value是对应mac地址的上网时长以及开始上网时间（精度为小时）
+    # mac2id是一个字典：
+    # key是mac地址
+    # value是对应mac地址的上网时长以及开始上网时间（精度为小时）
 
-	if mac not in mac2id:
-		mac2id[mac] = len(online_times)
-		online_times.append((start_time, online_time))
-	else:
-		online_times[mac2id[mac]] = [(start_time, online_time)]
+    if mac not in mac2id:
+        mac2id[mac] = len(online_times)
+        online_times.append((start_time, online_time))
+    else:
+        online_times[mac2id[mac]] = [(start_time, online_time)]
 
 # -1:根据元素的个数自动计算此轴的长度
 # X：上网时间
@@ -40,7 +40,7 @@ print('X =', X)
 # 调用DBSCAN方法进行训练 ，
 # labels为每个数据的簇标签
 
-db = skc.DBSCAN(eps = 0.6, min_samples = 9).fit(X) #
+db = skc.DBSCAN(eps=0.6, min_samples=9).fit(X)  #
 labels = db.labels_
 
 print('Lables:')
@@ -57,13 +57,13 @@ print('Silhouette Coefficient: %0.3f' % metrics.silhouette_score(X, labels))
 # 统计每一个簇内的样本个数， 均值，标准差
 
 for i in range(n_clusters_):
-	print('Cluster ', i, ':')
-	count = len(X[labels == i])
-	mean = np.mean(real_X[labels == i][:, 1])
-	std = np.std(real_X[labels == i][:, 1])
-	print('\t number of sample: ', count)
-	print('\t mean of sample  : ', format(mean, '.1f'))
-	print('\t std of sample   : ', format(std, '.1f'))
+    print('Cluster ', i, ':')
+    count = len(X[labels == i])
+    mean = np.mean(real_X[labels == i][:, 1])
+    std = np.std(real_X[labels == i][:, 1])
+    print('\t number of sample: ', count)
+    print('\t mean of sample  : ', format(mean, '.1f'))
+    print('\t std of sample   : ', format(std, '.1f'))
 
 plt.hist(X, 12)
 plt.show()

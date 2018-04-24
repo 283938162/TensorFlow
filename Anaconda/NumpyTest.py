@@ -12,6 +12,18 @@ print(x)
 
 xx = np.log(1+x)
 print(xx)
+
+
+
+
+# vstack() 函数
+# np.array() 功能里面包含这个函数的功能
+
+
+a=(1,2,3)
+b =(4,5,6)
+
+print(np.vstack((a,b)))
 #
 # online_times =  [(22, 1558), (12, 40261)]
 #

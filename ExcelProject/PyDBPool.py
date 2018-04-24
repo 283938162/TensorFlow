@@ -10,14 +10,28 @@ from sklearn.cluster import DBSCAN
 python object
 http://www.runoob.com/python/python-object.html
 '''
+
+# 阿里云 测试数据
+# mysqlInfo = {
+#     "host": '39.108.231.238',
+#     "user": 'aliyun',
+#     "passwd": 'liu@2014',
+#     "dbname": 'ROSAS',
+#     "port": 3306,
+#     "charset": 'utf8'
+# }
+
+# 公司测试库
+
 mysqlInfo = {
-    "host": '39.108.231.238',
-    "user": 'aliyun',
-    "passwd": 'liu@2014',
-    "dbname": 'DBTest',
+    "host": '120.76.26.161',
+    "user": 'cm',
+    "passwd": 'cm',
+    "dbname": 'ROSAS',
     "port": 3306,
     "charset": 'utf8'
 }
+
 
 
 class PyDBPool:
@@ -85,3 +99,11 @@ class PyDBPool:
         result = self.cursor.fetchall()
 
         return result
+
+
+if __name__ == '__main__':
+    dbpool = PyDBPool()
+
+    # todo
+    # 释放资源
+    dbpool.dispose()
