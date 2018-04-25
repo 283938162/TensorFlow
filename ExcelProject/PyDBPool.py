@@ -1,4 +1,5 @@
 import pymysql
+import pymssql
 from DBUtils.PooledDB import PooledDB
 from sklearn import metrics
 
@@ -32,15 +33,23 @@ mysqlInfo = {
     "charset": 'utf8'
 }
 
+sqlServerInfo = {
+    "host": '120.25.238.73',
+    "user": 'web',
+    "passwd": 'pass@word1',
+    "dbname": 'ROSAS_HN',
+    "charset": 'utf8'
+}
 
 
 class PyDBPool:
     __pool = None
 
     # 构造函数中的变量全局可用
-    def __init__(self) -> None:
+    # 构造函数重载 传入数据库类型的参数
+    def __init__(self, dbclassify) -> None:
         # 构造函数 创建数据库连接，操作游标
-        self.conn = PyDBPool.getMysqlConn(self)
+        self.conn = PyDBPool.getDBConn(self, dbclassify)
         self.cursor = self.conn.cursor()
 
     # 数据库连接池连接
@@ -59,14 +68,25 @@ class PyDBPool:
     #
 
     @staticmethod  # 通过注解声明一个静态方法，只创建一次 类似java的 static{}
-    def getMysqlConn(self):
-        if PyDBPool.__pool is None:
-            __pool = PooledDB(creator=pymysql, mincached=1, maxcached=20, host=mysqlInfo['host'],
-                              user=mysqlInfo['user'], passwd=mysqlInfo['passwd'], db=mysqlInfo['dbname'],
-                              port=mysqlInfo['port'], charset=mysqlInfo['charset'])
-            print("__pool :", __pool)
-            print("数据库连接池创建成功！")
-            return __pool.connection()
+    def getDBConn(self, dbclassify):
+        if dbclassify == 'mysql':
+            if PyDBPool.__pool is None:
+                __pool = PooledDB(creator=pymysql, mincached=1, maxcached=20, host=mysqlInfo['host'],
+                                  user=mysqlInfo['user'], passwd=mysqlInfo['passwd'], db=mysqlInfo['dbname'],
+                                  port=mysqlInfo['port'], charset=mysqlInfo['charset'])
+                print("__pool :", __pool)
+                print("mysql数据库连接池创建成功！")
+                return __pool.connection()
+        elif dbclassify == 'mssql':
+            if PyDBPool.__pool is None:
+                __pool = PooledDB(creator=pymssql, mincached=1, maxcached=20, host=sqlServerInfo['host'],
+                                  user=sqlServerInfo['user'], password=sqlServerInfo['passwd'],
+                                  database=sqlServerInfo['dbname'], charset=sqlServerInfo['charset'])
+                print("__pool :", __pool)
+                print("sqlserver数据库连接池创建成功！")
+                return __pool.connection()
+        else:
+            print('请输入正确的数据库类型！mysql 或者 mssql')
 
     # 连接资源释放
     def dispose(self):
@@ -102,7 +122,7 @@ class PyDBPool:
 
 
 if __name__ == '__main__':
-    dbpool = PyDBPool()
+    dbpool = PyDBPool('mysql')
 
     # todo
     # 释放资源

@@ -203,7 +203,7 @@ BEGIN
 											WHEN '一般严重'
 												THEN ROUND((RAND(CHECKSUM(newid())) * 0.2 + 0.3), 2)
 											WHEN '比较严重'
-												THEN ROUND((RAND(CHECKSUM(newid())) * 0.2 + 0.5), 2)
+			 									THEN ROUND((RAND(CHECKSUM(newid())) * 0.2 + 0.5), 2)
 											WHEN '非常严重'
 												THEN ROUND((RAND(CHECKSUM(newid())) * 0.2 + 0.7), 2)
 											ELSE ROUND((RAND(CHECKSUM(newid())) * 0.2 + 0.3), 2)
@@ -233,9 +233,9 @@ BEGIN
 
 	----关联两个临时表,更新原因,建议,Type_pro
 	UPDATE mtd
-	SET cellquestion = t2.reason
-		,cellproject = t2.suggest
-		,cellsuggest = '小区关键问题原因是：' + t2.reason + '\r优化建议方案：' + t2.suggest
+	SET cellquestion = t2.reason 26
+		,cellproject = t2.suggest 27
+		,cellsuggest = '小区关键问题原因是：' + t2.reason + '\r优化建议方案：' + t2.suggest  24
 	FROM mtd t1
 	JOIN mtd_reason_suggest_2 t2 ON t1.TASK_DETAIL_ID = t2.TASK_DETAIL_ID
 	WHERE ISNULL(t1.type1, '') NOT IN ('XN')

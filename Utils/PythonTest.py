@@ -1,6 +1,6 @@
 from ExcelProject.PyDBPool import PyDBPool
 
-db = PyDBPool()
+# db = PyDBPool('mysql')
 #
 # list_date = ['2017-03-25', '2017-03-26']
 # list_hour = [['00,01,03,04,05,06,07,12,15'], ['04,05,06,07']]
@@ -35,6 +35,44 @@ result5 = (('2017-03-26', '7:', 117, '建议处理BBU光模块收发异常告警
 
 # print(sorted(result5, key=lambda x: x[2]))
 
-a = ('a','b')
-print()
+# a = ('a','b')
+# print()
 
+
+# a = 'zz'
+# b = 'zz'
+#
+# print(a == b)
+
+#
+# dd = {'a': 'A', 'c': 'C'}
+# print(dd)
+#
+#
+# l = list(dd.keys())
+# print(l)
+
+
+# 修改元组
+#
+# a = (('a','b'),('c','d'))
+# print(a)
+# for i in a:
+#     item = list(i)
+#     print(item)
+#     item[0] = 'A'
+#
+# print(a)
+
+
+#  沿axis = 1方向复制
+import numpy as np
+
+y = np.array([1, 2, 3]).reshape(-1, 1)
+x = np.array([1, 2, 3])
+
+print(np.tile(x, 4))
+print(np.tile(y, 4))
+print(np.tile(y, 4) * 2)
+print(np.tile(y, 4) ** 2)
+print(np.tile(y, 4) ** 3)
