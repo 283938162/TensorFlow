@@ -1,6 +1,12 @@
 from ExcelProject.PyDBPool import PyDBPool
 
-# db = PyDBPool('mysql')
+dbpool = PyDBPool('mysql')
+tablePiCell = dbpool.select("select * from PI_CELL  where (PI55 + PI56) = 0 and pi378 >=0 limit 1;")
+for x in tablePiCell:
+    pi378 = float(x[393])
+    print('pi378:',pi378)
+    print(x[12])
+    print(x[5])
 #
 # list_date = ['2017-03-25', '2017-03-26']
 # list_hour = [['00,01,03,04,05,06,07,12,15'], ['04,05,06,07']]
@@ -66,13 +72,24 @@ result5 = (('2017-03-26', '7:', 117, '建议处理BBU光模块收发异常告警
 
 
 #  沿axis = 1方向复制
-import numpy as np
-
-y = np.array([1, 2, 3]).reshape(-1, 1)
-x = np.array([1, 2, 3])
-
-print(np.tile(x, 4))
-print(np.tile(y, 4))
-print(np.tile(y, 4) * 2)
-print(np.tile(y, 4) ** 2)
-print(np.tile(y, 4) ** 3)
+# import numpy as np
+#
+# y = np.array([1, 2, 3]).reshape(-1, 1)
+# x = np.array([1, 2, 3])
+# print('x= \n',x)
+#
+#
+# print('np.tile(x, 2) = \n',np.tile(x, 2))
+# print('np.tile(x, (2,1)) = \n',np.tile(x, (2,1))) # 复制2行1列  也就是说此时列不变，行复制
+# print('np.tile(x, (2,2)) = \n',np.tile(x, (2,2))) # 复制2行2列
+# # print(np.tile(y, 4))
+# # print(np.tile(y, 4) * 2)
+# # print(np.tile(y, 4) ** 2)
+# # print(np.tile(y, 4) ** 3)
+#
+#
+# kn = 'SFXN'
+# if kn in ('SFXN','SFLH'):
+#     print("存在")
+# else:
+#     print('不存在')

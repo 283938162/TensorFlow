@@ -143,8 +143,7 @@ def manageTaskByDay(task_detail_id):
 
         reasonSuggestMerge.append(rsm)
 
-
-    print('reasonSuggestMerge',reasonSuggestMerge)
+    print('reasonSuggestMerge', reasonSuggestMerge)
 
     # mtd保存cellquestion IS NULL AND  cellproject IS NULL为空的工单
 
@@ -153,10 +152,12 @@ def manageTaskByDay(task_detail_id):
         "select * from manager_task_detail where cellproject is Null and cellquestion is  null  and  ttime = '%s' limit 100;" % (
             ttime))
 
+    newMtd = []
 
-    print('mtd update ago:',mtd)
+    print('mtd :', mtd)
 
-
+    # 关联  reasonSuggestMerge 和 mtd   更新原因,建议,Type_pro
+    # 将更新后的内容保存到newMtd集合中
     for x in reasonSuggestMerge:
         rsKeys = list(x.keys())
 
@@ -171,25 +172,178 @@ def manageTaskByDay(task_detail_id):
             # cellProject =  suggest  #i[27]
             # cellSuggest = '小区关键问题原因是：' + reason + '\r优化建议方案：' + suggest
 
-            print(i[24])
+            singleMtd = list(i)
+            # print("singleMtd = ",list(i))
 
-            # i[26] = reason  #i[26]
-            # i[27] =  suggest  #i[27]
-            # i[24] = '小区关键问题原因是：' + reason + '\r优化建议方案：' + suggest
+            singleMtd[26] = reason  # i[26]
+            singleMtd[27] = suggest  # i[27]
+            singleMtd[24] = '小区关键问题原因是：' + reason + '\r优化建议方案：' + suggest
 
-    print('mtd update after:',mtd)
+            newMtd.append(singleMtd)
+
+    print('newMtd :', newMtd)
+
+    # 更新后的数据  newMtd 如何落地?
+
+    # 室分性能,室分劣化 cellquestion IS NULL 更新
+    # type1 13
+    # type3 15
+
+    # cellquestion 27
+    # cellproject 28
+    # cellsuggest 25
+
+    #picell- pi378 393
+    #picell-ttime 12
+    #picell- def_cellname 5
 
 
 
+    mtdSF = []
+    for i in newMtd:
+        type1 = i[13]
+        if type1 in ('SFXN', 'SFLH'):
+            mtdSF.append(i)
 
+    print('mtdSF = ', mtdSF)
 
+    tablePiCell = dbpool.select("select * from PI_CELL  where (PI55 + PI56) = 0 and pi378 >=0 limit 1;")
 
+    newMtdCell = []
 
-    # 关联  reasonSuggestMerge 和 mtd   更新原因,建议,Type_pro
+    for x in tablePiCell:
+        pi378 = float(x[393])
+        print('pi378:', float(pi378))
+        xttime = x[12]
+        xdefCellname = x[5]
+        for y in mtdSF:
+            yttime = y[2]
+            ydefCellname = y[4]
+            if xttime == yttime and xdefCellname == ydefCellname:
+                # todo
+                # 更新操作 cellquestion cellproject cellsuggest
+                if pi378 > 0:
+                    y[27] = '可能设备隐性故障或设备遭破坏'
+                    y[28] = '现场测试并对室分设备进行检查。'
+                    y[25] = '小区关键问题原因是：可能设备隐性故障或设备遭破坏。\r优化建议方案：现场测试并对室分设备进行检查。'
+                else:
+                    y[27] = '小区无用户'
+                    y[28] = '现场测试并对室分设备进行检查。'
+                    y[25] = '小区关键问题原因是：小区无用户。\r优化建议方案：现场测试并对室分设备进行检查。'
 
+            newMtdCell.append(y)
 
+    print('newMtdCell :', newMtdCell)
 
+    # 系统未发现原因的更新
+    # type1 13
+    # type3 15
 
+    # cellquestion 27
+    # cellproject 28
+    # cellsuggest 25
+    newMtdCellNoReason = []
+
+    for i in newMtdCell:
+
+        type3 = i[15]
+        type1 = 1[13]
+
+        # cellquestion
+        if type3 in ('严重弱覆盖小区',
+                     '近端弱覆盖小区'):
+
+            i[27] = '疑似小区天线挂高过低，机械下倾角过大或者小区覆盖方向存在阻挡。'
+        elif type3 in (
+                '远端弱覆盖小区'
+                , '过覆盖'
+                , '下行严重弱覆盖小区'
+                , '下行弱覆盖小区'
+        ):
+            i[27] = '疑似小区天线挂高过高，机械下倾角过小或者小区站间距过大。'
+        elif type3 == '室分弱覆盖小区':
+            i[27] = '疑似室分分布系统故障或分布不合理。'
+
+        elif type3 in (
+                '重叠覆盖且高质差宏站小区'
+                , '重叠覆盖'
+        ):
+            i[27] = '疑似小区或邻区工参不合理。'
+
+        elif type1 == 'MR':
+            i[27] == '系统并未发现影响小区覆盖的原因。'
+        else:
+            i[27] = '系统未发现影响小区性能的原因。'
+
+        # cellproject
+        if type3 in ('严重弱覆盖小区',
+                     '近端弱覆盖小区'):
+            i[28] = '疑似小区天线挂高过低，机械下倾角过大或者小区覆盖方向存在阻挡。'
+        elif type3 in (
+                '远端弱覆盖小区'
+                , '过覆盖'
+                , '下行严重弱覆盖小区'
+                , '下行弱覆盖小区'
+        ):
+            i[28] = '疑似小区天线挂高过高，机械下倾角过小或者小区站间距过大。'
+        elif type3 == '室分弱覆盖小区':
+            i[28] = '疑似室分分布系统故障或分布不合理。'
+
+        elif type3 in (
+                '重叠覆盖且高质差宏站小区'
+                , '重叠覆盖'
+        ):
+            i[28] = '疑似小区或邻区工参不合理。'
+
+        elif type1 == 'MR':
+            i[28] == '请到现场排查是否存在阻挡、站高和下倾角是否合理或其他原因导致。'
+        else:
+            i[28] = '需继续观察指标，或现场测试及对基站硬件进行排查。'
+
+        # cellsuggest
+        if type3 in ('严重弱覆盖小区',
+                     '近端弱覆盖小区'):
+            i[25] = '疑似小区天线挂高过低，机械下倾角过大或者小区覆盖方向存在阻挡。'
+        elif type3 in (
+                '远端弱覆盖小区'
+                , '过覆盖'
+                , '下行严重弱覆盖小区'
+                , '下行弱覆盖小区'
+        ):
+            i[25] = '疑似小区天线挂高过高，机械下倾角过小或者小区站间距过大。'
+        elif type3 == '室分弱覆盖小区':
+            i[25] = '小区关键问题原因是：疑似室分分布系统故障或分布不合理。\r优化建议方案：现场测试基站是否存在故障，室内分布否合理。'
+
+        elif type3 in (
+                '重叠覆盖且高质差宏站小区'
+                , '重叠覆盖'
+        ):
+            i[25] = '小区关键问题原因是：疑似小区或邻区工参不合理。\r优化建议方案：现场测试基站工程参数是否合理。'
+
+        elif type1 == 'MR':
+            i[25] == '小区关键问题原因是：系统并未发现影响小区覆盖的原因。\r优化建议方案：请到现场排查是否存在阻挡、站高和下倾角是否合理或其他原因导致。'
+        else:
+            i[25] = '小区关键问题原因是：系统未发现影响小区性能的原因。\r优化建议方案：需继续观察指标，或现场测试及对基站硬件进行排查。'
+
+        newMtdCellNoReason.append(i)
+    print('newMtdCellNoReason :', newMtdCellNoReason)
+
+    # 更新白名单
+    mtdWhilte = []
+
+    lteLhxqWhite = dbpool.select("select * from lte_lhxq_white;")
+
+    for i in lteLhxqWhite:
+        idefCellname = i[00]
+
+        for j in newMtdCellNoReason:
+            jdefCellnameChinese = j[00]
+            if jdefCellnameChinese == idefCellname:
+                # 更新 cellproject = cellproject + '\r本小区属于白名单小区，建议不下派工单。'
+                j[00] = j[00] + '\r本小区属于白名单小区，建议不下派工单。'
+                mtdWhilte.append(j)
+
+    print('mtdWhilte = ', mtdWhilte)
 
 
 if __name__ == '__main__':
