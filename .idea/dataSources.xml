@@ -24,11 +24,11 @@
         <property name="applicationName" value="DataGrip" />
       </driver-properties>
     </data-source>
-    <data-source source="LOCAL" name="DBTest@39.108.231.238" uuid="e049e9e7-2c0e-4aa5-b6ab-c9c0669e748b">
+    <data-source source="LOCAL" name="ROSAS@39.108.231.238" uuid="e049e9e7-2c0e-4aa5-b6ab-c9c0669e748b">
       <driver-ref>mysql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mysql://39.108.231.238:3306/DBTest</jdbc-url>
+      <jdbc-url>jdbc:mysql://39.108.231.238:3306/ROSAS</jdbc-url>
       <driver-properties>
         <property name="autoReconnect" value="true" />
         <property name="zeroDateTimeBehavior" value="convertToNull" />

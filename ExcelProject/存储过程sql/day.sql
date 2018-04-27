@@ -444,6 +444,15 @@ JOIN (
 	DEALLOCATE loop_import_reason_mod
 
 	UPDATE m1
+	SET cellproject = REPLACE(cellproject, '建议处理相关小区故障', '建议处理' + db1.FAULT_DESCRIPTION)
+	FROM mtd m1
+	JOIN PROPERTIES_DB db1 ON m1.def_cellname = db1.def_cellname
+		AND m1.ttime = db1.ttime
+	WHERE db1.type3 = '相关小区故障'
+		AND charindex('相关小区故障', m1.Cellquestion) > 0
+
+
+	UPDATE m1
 	SET cellproject = REPLACE(cellproject, '建议调整方向角', ISNULL('建议调整天线覆盖方向' + db.FAULT_OBJECT, '覆盖方向需调整'))
 	FROM mtd m1
 	JOIN (

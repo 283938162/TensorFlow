@@ -1,12 +1,31 @@
 from ExcelProject.PyDBPool import PyDBPool
 
 dbpool = PyDBPool('mysql')
-tablePiCell = dbpool.select("select * from PI_CELL  where (PI55 + PI56) = 0 and pi378 >=0 limit 1;")
-for x in tablePiCell:
-    pi378 = float(x[393])
-    print('pi378:',pi378)
-    print(x[12])
-    print(x[5])
+
+#  None  NULL
+
+a = ''
+print(a.strip() == '') # True
+print(a.strip() is None)  #False
+
+re = dbpool.select(
+    "select cellquestion,cellproject,cellsuggest,Type_pro from manager_task_detail where TASK_DETAIL_ID = %d" % (4379))
+print(re)
+
+
+
+# tablePiCell = dbpool.select("select * from PI_CELL  where (PI55 + PI56) = 0 and pi378 >=0 limit 1;")
+# for x in tablePiCell:
+#     pi378 = float(x[393])
+#     print('pi378:',pi378)
+#     print(x[12])
+#     print(x[5])
+
+# replace
+# cellquestion = '建议处理相关小区故障,建议砍掉！'
+#
+# print(cellquestion.replace('建议砍掉','建议马上砍掉'))
+
 #
 # list_date = ['2017-03-25', '2017-03-26']
 # list_hour = [['00,01,03,04,05,06,07,12,15'], ['04,05,06,07']]

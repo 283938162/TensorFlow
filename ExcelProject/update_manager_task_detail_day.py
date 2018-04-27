@@ -21,10 +21,9 @@ def manageTaskByDay(task_detail_id):
     result = dbpool.select(
         "select * from manager_task_detail where task_detail_id = %d and type1 != '%s'" % (task_detail_id, 'XN'))
     print("result:", result)
+    if len(result) == 0: return
     ttime = result[0][2]
     print("ttime:", ttime)
-
-    if len(result) == 0: return
 
     result2 = dbpool.select(
         "SELECT * FROM DATA_DATE where ttime='%s' AND thour = '23'" % (ttime))
@@ -57,7 +56,7 @@ def manageTaskByDay(task_detail_id):
     print("defCellname:", defCellname)
 
     tablePropertiesDb = dbpool.select(
-        "select pd.DEF_CELLNAME,pd.TYPE1,pd.TYPE3,pd.TTIME,pd.FAULT_DESCRIPTION,pd.LABEL,pd.THOUR,pd.LEVEL_R FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME = '%s' and pd.TTIME in (%s) " % (
+        "select pd.DEF_CELLNAME,pd.TYPE1,pd.TYPE3,pd.TTIME,pd.FAULT_DESCRIPTION,pd.LABEL,pd.THOUR,pd.LEVEL_R,pd.FAULT_OBJECT FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME = '%s' and pd.TTIME in (%s) " % (
             (defCellname),
             (','.join((map(lambda x: repr(x), list_date))))))
 
@@ -75,7 +74,7 @@ def manageTaskByDay(task_detail_id):
         "select * from import_reason as ir where ir.type1 = '%s' and INSTR(ir.representation,'%s') > 0" % (
             mtdType1, mtdType3))
 
-    # print("tableImportReason:", tableImportReason)
+    print("tableImportReason:", tableImportReason)
 
     # result5 = dbpool.select(
     #     "select pd.TTIME,pd.THOUR,ir.priority,ir.suggest,ir.reason,ir.importantreason from PROPERTIES_DB as pd join import_reason as ir on pd.TYPE3=ir.reason and pd.LEVEL_R = ir.level_r  and ir.importantreason !=0 limit 100")
@@ -102,13 +101,16 @@ def manageTaskByDay(task_detail_id):
                 rs.append(y[1])
                 rs.append(y[4])
 
+                # print('x = ', x)
+                # print('y = ', y)
+
                 reasonSuggest.append(tuple(rs))
 
     print("reasonSuggest", reasonSuggest)
 
     reasonSuggestMatch = []
 
-    # 按priority升序排列 取top5
+    # 按priority升序排列 取top5 并去重
 
     reasonSuggestMatch = list(set(sorted(reasonSuggest, key=lambda x: x[2])))[0:5]
 
@@ -156,7 +158,7 @@ def manageTaskByDay(task_detail_id):
 
     print('mtd :', mtd)
 
-    # 关联  reasonSuggestMerge 和 mtd   更新原因,建议,Type_pro
+    # 关联  reasonSuggestMerge 和 mtd  更新原因,建议,Type_pro
     # 将更新后的内容保存到newMtd集合中
     for x in reasonSuggestMerge:
         rsKeys = list(x.keys())
@@ -193,16 +195,15 @@ def manageTaskByDay(task_detail_id):
     # cellproject 28
     # cellsuggest 25
 
-    #picell- pi378 393
-    #picell-ttime 12
-    #picell- def_cellname 5
-
-
+    # picell- pi378 393
+    # picell-ttime 12
+    # picell- def_cellname 5
 
     mtdSF = []
     for i in newMtd:
         type1 = i[13]
-        if type1 in ('SFXN', 'SFLH'):
+        cellquestion = i[27]
+        if type1 in ('SFXN', 'SFLH') and cellquestion is None:
             mtdSF.append(i)
 
     print('mtdSF = ', mtdSF)
@@ -334,18 +335,89 @@ def manageTaskByDay(task_detail_id):
     lteLhxqWhite = dbpool.select("select * from lte_lhxq_white;")
 
     for i in lteLhxqWhite:
-        idefCellname = i[00]
+        idefCellname = i[2]
 
         for j in newMtdCellNoReason:
-            jdefCellnameChinese = j[00]
+            jdefCellnameChinese = j[6]
             if jdefCellnameChinese == idefCellname:
                 # 更新 cellproject = cellproject + '\r本小区属于白名单小区，建议不下派工单。'
-                j[00] = j[00] + '\r本小区属于白名单小区，建议不下派工单。'
+                j[28] = j[28] + '\r本小区属于白名单小区，建议不下派工单。'
                 mtdWhilte.append(j)
 
     print('mtdWhilte = ', mtdWhilte)
 
+    # 以下所有语句是更新更具体的建议cellproject
+
+    # 接下来两次更新白名单
+
+    # 第一次
+    # 查询 table
+
+    mtdWhilteOnce = []
+
+    for y in tablePropertiesDb:
+        ydefCellname = y[0]
+        yttime = y[3]
+        ytype3 = y[2]
+        yfaultDescription = y[4]
+        for x in mtdWhilte:
+            xdefCellname = x[4]
+            xttime = x[2]
+            xtype3 = x[15]
+            xcellquestion = x[27]
+
+            if xdefCellname == ydefCellname and xttime == yttime and ytype3 == '相关小区故障' and '相关小区故障' in xcellquestion:
+                # 更新cellproject
+                x[28] = x[28].replace('建议处理相关小区故障', '建议处理' + yfaultDescription)
+                mtdWhilteOnce.append(x)
+
+    print('mtdWhilteOnce: ', mtdWhilteOnce)
+    # 第二次更新
+    mtdWhilteTwice = []
+
+    tablePropertiesDbByType = dbpool.select(
+        "select DEF_CELLNAME,TTIME,FAULT_OBJECT from PROPERTIES_DB where TYPE1 = '%s' and TYPE3='%s'" % (
+            'MR', '覆盖方向需调整'))  # 大约80行
+
+    for x in tablePropertiesDbByType:
+        xfaultObject = x[2]
+        xdefCellname = x[0]
+        xttime = x[1]
+
+        for y in mtdWhilteOnce:
+            yttime = y[2]
+            ydefCellname = y[4]
+            ycellquestion = y[27]
+
+            if xdefCellname == ydefCellname and xttime == yttime and '覆盖方向需调整' in ycellquestion:
+                ycellproject = y[28]
+                if ('建议调整方向角' in ycellproject):
+                    re = '建议处理相关小区故障'
+                else:
+                    re = '建议处理' + xfaultObject
+
+                y[28] = y[28].replace('覆盖方向需调整', re)
+
+                mtdWhilteTwice.append(y)
+    print("mtdWhilteTwice: ", mtdWhilteTwice)
+
+    # 将上述所有对数据的操作更新到 manager_task_detail
+
+    print("执行更新工单操作...")
+    # for x in mtdWhilteTwice:
+    #     xcellquestion = x[27]
+    #     xcellproject = x[28]
+    #     xcellsuggest = x[25]
+    #     xtypePro = x[37]
+    #
+    #     updateMtdSql = "update manager_task_detail set cellquestion = '%s',cellproject = '%s',cellsuggest= '%s',Type_pro='%s' where TASK_DETAIL_ID = %d" % (
+    #         xcellquestion, xcellproject, xcellsuggest, xtypePro, task_detail_id)
+    #
+    #     if (dbpool.update(updateMtdSql) > 0):
+    #         print("成功更新一条工单！")
+
 
 if __name__ == '__main__':
+    # task_detail_id = 4379
     task_detail_id = 4379
     manageTaskByDay(task_detail_id)
