@@ -3,8 +3,6 @@ from ExcelProject.PyDBPool import PyDBPool
 # dbpool = PyDBPool('mysql')
 
 
-
-
 # 测试set
 
 reasonSuggestMerge = [{('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:10']},
@@ -15,37 +13,34 @@ reasonSuggestMerge = [{('疑似邻区存在隐性故障', '低空大气波导效
 
 d = dict()
 # d = {}  两种声明字典的结果一样
-
+dateList = []
 for i in reasonSuggestMerge:
     key = list(i.keys())[0]
     print(key)
     value = i[key]
     print(value)
+    datehour = i[key][0].split(':')
+    print('datehour = ', datehour)
+    print('date = ', datehour[0])
 
-    dateList = []
+
 
     if key not in d:
         d[key] = i[key]
-        dateList+=i[key]
+        dateList += datehour[0]
     else:
-        dateList += i[key]
+        if datehour[0] in dateList:
+            dateList += datehour[1]
+
         d[key] = dateList
 
 print(d)
 
+# ['2017-03-26:05,17,22', '2017-03-26:11']
 
+str = "'2017-03-26:05,17,22'"
 
-
-
-
-
-
-
-
-
-
-
-
+print('2017-03-26' in str)
 
 # #  None  NULL
 #
@@ -56,7 +51,6 @@ print(d)
 # re = dbpool.select(
 #     "select cellquestion,cellproject,cellsuggest,Type_pro from manager_task_detail where TASK_DETAIL_ID = %d" % (4379))
 # print(re)
-
 
 
 # tablePiCell = dbpool.select("select * from PI_CELL  where (PI55 + PI56) = 0 and pi378 >=0 limit 1;")
