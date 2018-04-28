@@ -41,6 +41,8 @@ BEGIN
 		DROP TABLE mtd
 	END
 
+  ----todo 是不是也是拿取单条工单记录,然后更新 type3 ?  还是更新整个表中的type ?
+
 	UPDATE manager_task_detail
 	SET type3 = '高掉线小区'
 	WHERE reply = '0'
@@ -77,6 +79,7 @@ BEGIN
 					FOR XML path('')
 					), 1, 1, '')
 			)
+
 
 	SELECT def_cellname
 	INTO temp_manager_task_detail_hour_3

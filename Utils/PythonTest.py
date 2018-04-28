@@ -1,16 +1,61 @@
 from ExcelProject.PyDBPool import PyDBPool
 
-dbpool = PyDBPool('mysql')
+# dbpool = PyDBPool('mysql')
 
-#  None  NULL
 
-a = ''
-print(a.strip() == '') # True
-print(a.strip() is None)  #False
 
-re = dbpool.select(
-    "select cellquestion,cellproject,cellsuggest,Type_pro from manager_task_detail where TASK_DETAIL_ID = %d" % (4379))
-print(re)
+
+# 测试set
+
+reasonSuggestMerge = [{('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:10']},
+                      {('邻区干扰影响切换', '建议进行负载均衡参数调整'): ['2017-03-26:08']},
+                      {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:05,17,22']},
+                      {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:11']},
+                      {('互调干扰', '建议处理同频单向邻区'): ['2017-03-26:03,04,05,06,07,08,09,10']}]
+
+d = dict()
+# d = {}  两种声明字典的结果一样
+
+for i in reasonSuggestMerge:
+    key = list(i.keys())[0]
+    print(key)
+    value = i[key]
+    print(value)
+
+    dateList = []
+
+    if key not in d:
+        d[key] = i[key]
+        dateList+=i[key]
+    else:
+        dateList += i[key]
+        d[key] = dateList
+
+print(d)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# #  None  NULL
+#
+# a = ''
+# print(a.strip() == '') # True
+# print(a.strip() is None)  #False
+#
+# re = dbpool.select(
+#     "select cellquestion,cellproject,cellsuggest,Type_pro from manager_task_detail where TASK_DETAIL_ID = %d" % (4379))
+# print(re)
 
 
 

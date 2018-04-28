@@ -103,7 +103,7 @@ class PyDBPool:
             elif sql[0] == 'i':
                 print("数据插入成功！")
             elif sql[0] == 'u':
-                print("数据更新成功！")
+                print("更新操作执行成功！")
             self.conn.commit()
 
             return num

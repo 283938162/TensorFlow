@@ -6,75 +6,85 @@ from ExcelProject.PyDBPool import PyDBPool
 dbpool = PyDBPool('mysql')
 
 '''
-@manageTask()  按天更新工单信息
-@task_detail_id 传入的工单id参数
+@updateMtdByHour()  按小时更新工单信息manager_task_detail
+@task_detail_id     传入的工单id参数
 
 '''
 
 
-def updateMtdByDay(task_detail_id):
+def updateMtdByHour(task_detail_id):
     if task_detail_id is None:
         print("工单号为空")
         return
 
-    # 查询指定工单号的工单记录，如果不存在该记录 跳过
-    result = dbpool.select(
-        "select * from manager_task_detail where task_detail_id = %d and type1 != '%s'" % (task_detail_id, 'XN'))
-    print("result:", result)
-    if len(result) == 0: return
-    ttime = result[0][2]
-    print("ttime:", ttime)
+    updateMtdInitSql = "update ROSAS.manager_task_detail set type3 = '%s' where task_detail_id = %d and reply= '0' and type1 = 'XN' and ifnull(type3,'') = ''" % (
+        '高掉线小区', task_detail_id)
 
-    result2 = dbpool.select(
-        "SELECT * FROM DATA_DATE where ttime='%s' AND thour = '23'" % (ttime))
-    print("result2", result2)
-    if len(result2) == 0: return
+    if dbpool.update(updateMtdInitSql) > 0:
+        print("初始化数据更新成功!")
+    else:
+        print("初始化数据未更新!")
+
+    SingleManagerTaskDetail = dbpool.select(
+        "select * from ROSAS.manager_task_detail where TASK_DETAIL_ID = %d" % (task_detail_id))
+    if len(SingleManagerTaskDetail) == 0:
+        print("未查询到该指定工单号的记录")
+        return
+    ttimeFromSMTD = SingleManagerTaskDetail[0][2]
+    print('ttimeFromSMTD :', ttimeFromSMTD)
+    faultDatehourFromSMTD = SingleManagerTaskDetail[0][36]
+    print('faultDatehourFromSMTD :', faultDatehourFromSMTD)
+    defCellnameFromSMTD = SingleManagerTaskDetail[0][4]
+    print("defCellnameFromSMTD:", defCellnameFromSMTD)
 
     # 取出当前工单号中的日期和时间
     list_date = []
-    list_hour = []
-    fault_datehour = result[0][36]
-    dates = fault_datehour.split(';')
+
+    dates = faultDatehourFromSMTD.split(';')
     for y in dates:
         dates = y.split(':')[0]
         hours = y.split(':')[1:]
-
-        print(dates)
-        # print(hours)
-
         list_date.append(dates)
-        # list_hour.append(hours)
 
-    print('fault_datehour:', fault_datehour)
+    print("list_date:", list_date)
 
-    print("list_date:", list_date)  # list_date: ['2017-03-25', '2017-03-26']
-    # print("list_hour:", list_hour)  # list_hour: [['00,01,03,04,05,06,07,12,15'], ['04,05,06,07']]
+    # 保存性能工单 到mtd
+    mtd = []
+    dataDate = dbpool.select("select * from ROSAS.DATA_DATE")
+    managerTaskDetail = dbpool.select(
+        "select * from ROSAS.manager_task_detail where cellproject is NULL  and cellquestion is null and type1 = 'XN'")
 
-    # 取性能工单
-    mtd = dbpool.select(
-        "select * from manager_task_detail where cellproject is Null and cellquestion is  null  and  ttime = '%s' limit 100;" % (
-            ttime))
+    print("dataDate = ", dataDate)
+    print("managerTaskDetail = ", managerTaskDetail)
 
-    newMtd = []
-
+    for d in dataDate:
+        dttime = d[0]
+        dthour = d[1]
+        for m in managerTaskDetail:
+            mttime = m[2]
+            mthour = m[19]
+            if dttime == mttime and dttime == mthour:
+                mtd.append(m)
     print('mtd :', mtd)
+    # if len(mtd) == 0: return
 
+    # 取出mtd中的小区名
+    defCellnameSet = set()
 
-
-
+    for i in mtd:
+        defCellnameSet.add(i[4])
+    print("defCellnameSet", defCellnameSet)
 
     # 从属性数据库PROPERTIES_DB取出相关数据
 
-    defCellname = result[0][4]
-    print("defCellname:", defCellname)
-
     tablePropertiesDb = dbpool.select(
-        "select pd.DEF_CELLNAME,pd.TYPE1,pd.TYPE3,pd.TTIME,pd.FAULT_DESCRIPTION,pd.LABEL,pd.THOUR,pd.LEVEL_R,pd.FAULT_OBJECT FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME = '%s' and pd.TTIME in (%s) " % (
-            (defCellname),
+        "select pd.DEF_CELLNAME,pd.TYPE1,pd.TYPE3,pd.TTIME,pd.FAULT_DESCRIPTION,pd.LABEL,pd.THOUR,pd.LEVEL_R,pd.FAULT_OBJECT FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME = '%s' and pd.TTIME in (%s) and pd.TYPE1 not in ('显性故障','干扰','容量')" % (
+            (defCellnameFromSMTD),
             (','.join((map(lambda x: repr(x), list_date))))))
 
     print("tablePropertiesDb:", tablePropertiesDb)
 
+    return
     # 去除result3中不符合条件的记录
 
     # todo 取出记录
@@ -89,6 +99,11 @@ def updateMtdByDay(task_detail_id):
 
     print("tableImportReason:", tableImportReason)
 
+    # result5 = dbpool.select(
+    #     "select pd.TTIME,pd.THOUR,ir.priority,ir.suggest,ir.reason,ir.importantreason from PROPERTIES_DB as pd join import_reason as ir on pd.TYPE3=ir.reason and pd.LEVEL_R = ir.level_r  and ir.importantreason !=0 limit 100")
+    # print("result5:", result5)
+    #
+
     reasonSuggest = []
     for x in tablePropertiesDb:
         pdType3 = x[2]
@@ -100,6 +115,7 @@ def updateMtdByDay(task_detail_id):
 
             if (pdType3 == irReason) and (pdLevelR == irLevelR) and (irImportantreason != 0):
                 rs = []
+
                 rs.append(x[3])
                 rs.append(x[6])
 
@@ -125,12 +141,6 @@ def updateMtdByDay(task_detail_id):
 
     #  即把相同的suggest,reason记录里面日期和小时合并到一起
 
-    # reasonSuggestMerge = [{('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:10']},
-    #                       {('邻区干扰影响切换', '建议进行负载均衡参数调整'): ['2017-03-26:08']},
-    #                       {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:05,17,22']},
-    #                       {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:11']},
-    #                       {('互调干扰', '建议处理同频单向邻区'): ['2017-03-26:03,04,05,06,07,08,09,10']}]
-
     reasonSuggestMerge = []
 
     for i in reasonSuggestMatch:
@@ -153,15 +163,23 @@ def updateMtdByDay(task_detail_id):
             rsm[rs] = date_list
         else:
             rsm[rs].append(';' + ttime + ':' + thour)
+
+        print("rsm:", rsm)
+
         reasonSuggestMerge.append(rsm)
 
     print('reasonSuggestMerge', reasonSuggestMerge)
 
-
     # mtd保存cellquestion IS NULL AND  cellproject IS NULL为空的工单
 
     # 更新 mtd的变量里面的内容
+    mtd = dbpool.select(
+        "select * from manager_task_detail where cellproject is Null and cellquestion is  null  and  ttime = '%s' limit 100;" % (
+            ttime))
 
+    newMtd = []
+
+    print('mtd :', mtd)
 
     # 关联  reasonSuggestMerge 和 mtd  更新原因,建议,Type_pro
     # 将更新后的内容保存到newMtd集合中
@@ -171,10 +189,7 @@ def updateMtdByDay(task_detail_id):
         reason = rsKeys[0][0]
         suggest = rsKeys[0][1]
 
-        print("reason = ",reason)
-        if reason is None:
-            print("=================================================")
-            return
+        print(reason)
         print(suggest)
 
         for i in mtd:
@@ -211,9 +226,7 @@ def updateMtdByDay(task_detail_id):
     for i in newMtd:
         type1 = i[13]
         cellquestion = i[27]
-        # print('type1 = %s, cellquestion = %s' % (type1, cellquestion))
-        # print("taskid = '%s', type1 = '%s'"%( i[0],i[13]))
-        # print('cellquestion = ',cellquestion)
+        print("type1 = '%s', cellquestion = '%s'" % (type1, cellquestion))
         if type1 in ('SFXN', 'SFLH') and cellquestion is None:
             mtdSF.append(i)
 
@@ -430,5 +443,5 @@ def updateMtdByDay(task_detail_id):
 
 if __name__ == '__main__':
     # task_detail_id = 4379
-    task_detail_id = 6
-    updateMtdByDay(task_detail_id)
+    task_detail_id = 4409
+    updateMtdByHour(task_detail_id)
