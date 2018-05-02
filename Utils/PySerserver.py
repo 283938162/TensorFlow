@@ -21,7 +21,7 @@ print(conn)
 
 cursor = conn.cursor()
 
-sql = "select * from ROSAS_HN.dbo.manager_task_detail"
+sql = "select * from ROSAS_HN.dbo.manager_task_detail where TASK_DETAIL_ID = 3510"
 
 cursor.execute(sql)
 

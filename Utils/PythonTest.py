@@ -1,46 +1,80 @@
 from ExcelProject.PyDBPool import PyDBPool
 
-# dbpool = PyDBPool('mysql')
+dbpool = PyDBPool('mysql')
 
+re = dbpool.select("SELECT type1,cellquestion FROM manager_task_detail WHERE TASK_DETAIL_ID = 6;")
+print(re)
+print('type1 =',re[0][0])
+print('type2 = ',re[0][1])
+
+if re[0][1] is None:
+    print("None")
+elif re[0][1] == '':
+    print('NULL')
+else:
+    print('other')
 
 # 测试set
 
+# reasonSuggestMerge = [{('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:10']},
+#                       {('邻区干扰影响切换', '建议进行负载均衡参数调整'): ['2017-03-26:08']},
+#                       {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:05,17,22']},
+#                       {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-28:16,17,18']},
+#                       {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:11']},
+#                       {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-28:12']},
+#                       {('互调干扰', '建议处理同频单向邻区'): ['2017-03-26:03,04,05,06,07,08,09,10']}]
+
+
 reasonSuggestMerge = [{('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:10']},
                       {('邻区干扰影响切换', '建议进行负载均衡参数调整'): ['2017-03-26:08']},
+                      {('邻区干扰影响切换1111', '建议进行负载均衡参数调整'): ['2017-03-27:08']},
                       {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:05,17,22']},
-                      {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:11']},
-                      {('互调干扰', '建议处理同频单向邻区'): ['2017-03-26:03,04,05,06,07,08,09,10']}]
-
-d = dict()
-# d = {}  两种声明字典的结果一样
-dateList = []
-for i in reasonSuggestMerge:
-    key = list(i.keys())[0]
-    print(key)
-    value = i[key]
-    print(value)
-    datehour = i[key][0].split(':')
-    print('datehour = ', datehour)
-    print('date = ', datehour[0])
+                      # {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-28:16,17,18']},
+                      {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-26:11']}]
+# {('疑似邻区存在隐性故障', '低空大气波导效应、天线挂高过高、发射功率过大等原因导致'): ['2017-03-28:12']}]
 
 
 
-    if key not in d:
-        d[key] = i[key]
-        dateList += datehour[0]
-    else:
-        if datehour[0] in dateList:
-            dateList += datehour[1]
 
-        d[key] = dateList
 
-print(d)
+# def getMergeDate(reasonSuggestMerge):
+#     d = dict()
+#     # d = {}  两种声明字典的结果一样
+#     for i in reasonSuggestMerge:
+#         dateList = []
+#         key = list(i.keys())[0]
+#         print(key)
+#         value = i[key]
+#         print(value)
+#         datehour = i[key][0].split(':')
+#         print('datehour = ', datehour)
+#         print('date = ', datehour[0])
+#
+#         if key not in d:
+#             d[key] = i[key]
+#             dateList += datehour
+#         else:  # 相同的key  value合并  [data1:hour1;date2:hour2...]
+#             for i in range(len(d[key])):
+#                 if datehour[0] in d[key][i]:
+#                     d[key] += datehour[1:]
+#                     print('d[key][] :', d[key][0])
+#
+#             datetime = ','.join(d[key])
+#             print('datetime =', datetime)
+#
+#             a = []
+#             a.append(datetime)  # append 没有返回值~~~
+#             d[key] = a
+#
+#     return d
+#
+# print(getMergeDate(reasonSuggestMerge))
 
 # ['2017-03-26:05,17,22', '2017-03-26:11']
 
-str = "'2017-03-26:05,17,22'"
-
-print('2017-03-26' in str)
+# str = "'2017-03-26:05,17,22'"
+#
+# print('2017-03-26' in str)
 
 # #  None  NULL
 #

@@ -224,7 +224,7 @@ BEGIN
 					FROM mtd_reason_suggest_1 AS t1
 					WHERE t1.TASK_DETAIL_ID = mtd_reason_suggest_1.TASK_DETAIL_ID
 					FOR XML path('')
-					), 1, 0, '')
+					), 1, 0, +'')
 		FROM mtd_reason_suggest_1
 		) tt1
 	GROUP BY TASK_DETAIL_ID
@@ -233,9 +233,9 @@ BEGIN
 
 	----关联两个临时表,更新原因,建议,Type_pro
 	UPDATE mtd
-	SET cellquestion = t2.reason 26
-		,cellproject = t2.suggest 27
-		,cellsuggest = '小区关键问题原因是：' + t2.reason + '\r优化建议方案：' + t2.suggest  24
+	SET cellquestion = t2.reason
+		,cellproject = t2.suggest
+		,cellsuggest = '小区关键问题原因是：' + t2.reason + '\r优化建议方案：' + t2.suggest
 	FROM mtd t1
 	JOIN mtd_reason_suggest_2 t2 ON t1.TASK_DETAIL_ID = t2.TASK_DETAIL_ID
 	WHERE ISNULL(t1.type1, '') NOT IN ('XN')
@@ -451,7 +451,7 @@ JOIN (
 	WHERE db1.type3 = '相关小区故障'
 		AND charindex('相关小区故障', m1.Cellquestion) > 0
 
-
+--todo
 	UPDATE m1
 	SET cellproject = REPLACE(cellproject, '建议调整方向角', ISNULL('建议调整天线覆盖方向' + db.FAULT_OBJECT, '覆盖方向需调整'))
 	FROM mtd m1

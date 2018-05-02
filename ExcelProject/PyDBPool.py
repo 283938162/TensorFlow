@@ -121,9 +121,16 @@ class PyDBPool:
         return result
 
 
+def sqlserver(param):
+    dbpool = PyDBPool('mssql')
+    mssqlRes = dbpool.select("select * from ROSAS_HN.dbo.manager_task_detail where TASK_DETAIL_ID = 3510")
+    print(mssqlRes)
+    dbpool.dispose()
+    return mssqlRes
+
+
 if __name__ == '__main__':
-    dbpool = PyDBPool('mysql')
+    mssqlRes = sqlserver('mssql')
 
     # todo
     # 释放资源
-    dbpool.dispose()
