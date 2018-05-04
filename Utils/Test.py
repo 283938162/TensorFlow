@@ -40,5 +40,5 @@ def getListInfo(bbb):
     print('%s =  %s' % (pname, bbb))
     print('the length of %s  = %s' % (pname, len(bbb)))
 
-
+locals()
 getListInfo(type1List)

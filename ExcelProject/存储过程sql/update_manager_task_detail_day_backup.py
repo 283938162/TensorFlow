@@ -10,21 +10,15 @@ from ExcelProject.PyDBPool import PyDBPool
 
 """
 
-"""
-根据工单id 查询单条工单记录
 
-ttime 工单时间
-data  fault_datehour字段中的所有日期
-mtdType1 工单类型   
-mtdType3
+def updateMtdByDay(task_detail_id, dbtype):
+    # 初始化数据库连接池对象
+    dbpool = PyDBPool(dbtype)
 
-"""
-
-
-def getSingleMtdInfo(task_detail_id, dbpool):
     if task_detail_id is None:
         print("工单号为空")
         return
+
     # 查询指定工单号的工单记录，如果不存在该记录 跳过
     mtd = dbpool.select(
         "select * from manager_task_detail where task_detail_id = %d and type1 != '%s'" % (task_detail_id, 'XN'))
@@ -40,42 +34,44 @@ def getSingleMtdInfo(task_detail_id, dbpool):
 
     # 取出当前工单号中的日期和时间
     list_date = []
+    list_hour = []
     fault_datehour = mtd[0][36]
     dates = fault_datehour.split(';')
     for y in dates:
         dates = y.split(':')[0]
+        hours = y.split(':')[1:]
+
+        print(dates)
+        # print(hours)
+
         list_date.append(dates)
+        # list_hour.append(hours)
+
+    print('fault_datehour:', fault_datehour)
+
+    print("list_date:", list_date)  # list_date: ['2017-03-25', '2017-03-26']
+    # print("list_hour:", list_hour)  # list_hour: [['00,01,03,04,05,06,07,12,15'], ['04,05,06,07']]
+
+    # 从属性数据库PROPERTIES_DB取出相关数据
+
     defCellname = mtd[0][4]
-    # todo 取出记录
-    mtdType1 = mtd[0][13]
-    mtdType3 = mtd[0][15]
+    print("defCellname:", defCellname)
 
-    return mtd, ttime, list_date, defCellname, mtdType1, mtdType3
-
-
-"""
-PROPERTIES_DB	小区属性库
-manager_task_detail 与 PROPERTIES_DB 关联 取出 小区名一样且日期在mtd的date_list中的数据
-"""
-
-
-def getTablePropertiesDb(dbpool, defCellname, list_date):
     tablePropertiesDb = dbpool.select(
         "select pd.DEF_CELLNAME,pd.TYPE1,pd.TYPE3,pd.TTIME,pd.FAULT_DESCRIPTION,pd.LABEL,pd.THOUR,pd.LEVEL_R,pd.FAULT_OBJECT FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME = '%s' and pd.TTIME in (%s) " % (
             (defCellname),
             (','.join((map(lambda x: repr(x), list_date))))))
 
     print("tablePropertiesDb:", tablePropertiesDb)
-    return tablePropertiesDb
 
+    # 去除result3中不符合条件的记录
 
-"""
-import_reason	工单、原因、方案预配置
-manager_task_detail 与 import_reason 关联 取出 type1 与 type3 一致的数据
-"""
+    # todo 取出记录
+    mtdType1 = mtd[0][13]
+    mtdType3 = mtd[0][15]
 
+    print('mtdType1:', mtdType1)
 
-def getTableImportReason(dbpool, dbtype, mtdType1, mtdType3):
     if dbtype == 'mysql':
         tableImportReason = dbpool.select(
             "select * from import_reason as ir where ir.type1 = '%s' and INSTR(ir.representation,'%s') > 0" % (
@@ -84,28 +80,9 @@ def getTableImportReason(dbpool, dbtype, mtdType1, mtdType3):
         tableImportReason = dbpool.select(
             "select * from import_reason as ir where ir.type1 = '%s' and charindex(ir.representation,'%s') > 0" % (
                 mtdType1, mtdType3))
+
     print("tableImportReason:", tableImportReason)
-    return tableImportReason
 
-
-"""
-关联条件如下:
-@table_properties_db.type3 = @table_import_reason.reason
-@table_properties_db.LEVEL_R = @table_import_reason.LEVEL_R 
-
-取出以下字段
-
-@table_properties_db.ttime
-@table_properties_db.thour
-@table_import_reason.priority
-@table_import_reason.suggest
-@table_import_reason.reason 
-@table_import_reason.importantreason
-
-"""
-
-
-def getReasonSuggest(tablePropertiesDb, tableImportReason):
     reasonSuggest = []
     for x in tablePropertiesDb:
         pdType3 = x[2]
@@ -119,39 +96,23 @@ def getReasonSuggest(tablePropertiesDb, tableImportReason):
                 rs = []
                 rs.append(x[3])
                 rs.append(x[6])
+
                 rs.append(y[3])
                 rs.append(y[5])
                 rs.append(y[1])
                 rs.append(y[4])
+
+                # print('x = ', x)
+                # print('y = ', y)
+
                 reasonSuggest.append(tuple(rs))
+
     print("reasonSuggest", reasonSuggest)
-    return reasonSuggest
 
-
-def updateMtdByDay(task_detail_id, dbtype):
-    # 初始化数据库连接池对象
-    dbpool = PyDBPool(dbtype)
-
-    # 查询manager_task_detail表
-    mtd, ttime, list_date, defCellname, mtdType1, mtdType3 = getSingleMtdInfo(task_detail_id, dbpool)
-
-    # 从属性数据库PROPERTIES_DB取出相关数据
-    tablePropertiesDb = getTablePropertiesDb(dbpool, defCellname, list_date)
-
-    # 去除result3中不符合条件的记录
-    tableImportReason = getTableImportReason(dbpool, dbtype, mtdType1, mtdType3)
-
-    # tablePropertiesDb 和 tableImportReason 集合关联,保存满足条件的变量
-    # 元素样式 ('2017-03-26', '11', 400, '建议降低小区的发射功率', '室分功率参数不合理', 1)
-    reasonSuggest = getReasonSuggest(tablePropertiesDb, tableImportReason)
-
-    reasonSuggest[('2017-03-26', '11', 400, '建议降低小区的发射功率', '室分功率参数不合理', 1), (
-    '2017-03-26', '05,17,22', 400, '建议降低小区的发射功率', '室分功率参数不合理', 1), (
-                  '2017-03-26', '13', 400, '建议降低小区的发射功率', '室分功率参数不合理', 1), (
-                  '2017-03-26', '08', 400, '建议降低小区的发射功率', '室分功率参数不合理', 1), (
-                  '2017-03-26', '09,14,15', 400, '建议降低小区的发射功率', '室分功率参数不合理', 1)]
+    reasonSuggestMatch = []
 
     # 按priority升序排列 取top5 并去重
+
     reasonSuggestMatch = list(set(sorted(reasonSuggest, key=lambda x: x[2])))[0:5]
 
     print("reasonSuggestMatch:", reasonSuggestMatch)
