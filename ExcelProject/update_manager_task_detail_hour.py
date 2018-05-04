@@ -25,22 +25,24 @@ def updateMtdByHour(task_detail_id):
     else:
         print("初始化数据未更新!")
 
-    SingleManagerTaskDetail = dbpool.select(
+    mtd = dbpool.select(
         "select * from ROSAS.manager_task_detail where TASK_DETAIL_ID = %d" % (task_detail_id))
-    if len(SingleManagerTaskDetail) == 0:
+    if len(mtd) == 0:
         print("未查询到该指定工单号的记录")
         return
-    ttimeFromSMTD = SingleManagerTaskDetail[0][2]
-    print('ttimeFromSMTD :', ttimeFromSMTD)
-    faultDatehourFromSMTD = SingleManagerTaskDetail[0][36]
-    print('faultDatehourFromSMTD :', faultDatehourFromSMTD)
-    defCellnameFromSMTD = SingleManagerTaskDetail[0][4]
-    print("defCellnameFromSMTD:", defCellnameFromSMTD)
+    ttime = mtd[0][2]
+    print('ttime :', ttime)
+    faultDatehour = mtd[0][36]
+    print('faultDatehour :', faultDatehour)
+    defCellname = mtd[0][4]
+    print("defCellname :", defCellname)
+    thour = mtd[0][19]
+    print("thour :", thour)
 
     # 取出当前工单号中的日期和时间
     list_date = []
 
-    dates = faultDatehourFromSMTD.split(';')
+    dates = faultDatehour.split(';')
     for y in dates:
         dates = y.split(':')[0]
         hours = y.split(':')[1:]
@@ -48,48 +50,26 @@ def updateMtdByHour(task_detail_id):
 
     print("list_date:", list_date)
 
-    # 保存性能工单 到mtd
-    mtd = []
-    dataDate = dbpool.select("select * from ROSAS.DATA_DATE")
-    managerTaskDetail = dbpool.select(
-        "select * from ROSAS.manager_task_detail where cellproject is NULL  and cellquestion is null and type1 = 'XN'")
-
-    print("dataDate = ", dataDate)
-    print("managerTaskDetail = ", managerTaskDetail)
-
-    for d in dataDate:
-        dttime = d[0]
-        dthour = d[1]
-        for m in managerTaskDetail:
-            mttime = m[2]
-            mthour = m[19]
-            if dttime == mttime and dttime == mthour:
-                mtd.append(m)
-    print('mtd :', mtd)
-    # if len(mtd) == 0: return
-
-    # 取出mtd中的小区名
-    defCellnameSet = set()
-
-    for i in mtd:
-        defCellnameSet.add(i[4])
-    print("defCellnameSet", defCellnameSet)
-
-    # 从属性数据库PROPERTIES_DB取出相关数据
-
     tablePropertiesDb = dbpool.select(
-        "select pd.DEF_CELLNAME,pd.TYPE1,pd.TYPE3,pd.TTIME,pd.FAULT_DESCRIPTION,pd.LABEL,pd.THOUR,pd.LEVEL_R,pd.FAULT_OBJECT FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME = '%s' and pd.TTIME in (%s) and pd.TYPE1 not in ('显性故障','干扰','容量')" % (
-            (defCellnameFromSMTD),
+        "select * from PROPERTIES_DB where DEF_CELLNAME = '%s' and TTIME in (%s) and TYPE1 not in(%s);" % (
+            (defCellname),
+            (','.join((map(lambda x: repr(x), list_date)))),
+            (','.join((map(lambda x: repr(x), ['显性故障', '干扰', '容量']))))))
+
+    print('tablePropertiesDb', tablePropertiesDb)
+    print('tablePropertiesDb length = ', len(tablePropertiesDb))
+
+    tablePropertiesDbHour = dbpool.select(
+        "select pd.DEF_CELLNAME,pd.TYPE1,pd.TYPE3,pd.TTIME,pd.FAULT_DESCRIPTION,pd.LABEL,pd.THOUR,pd.LEVEL_R,pd.FAULT_OBJECT FROM PROPERTIES_DB_HOUR as pd where pd.DEF_CELLNAME = '%s' and pd.TTIME in (%s) " % (
+            (defCellname),
             (','.join((map(lambda x: repr(x), list_date))))))
 
-    print("tablePropertiesDb:", tablePropertiesDb)
-
-    return
-    # 去除result3中不符合条件的记录
+    print('tablePropertiesDbHour', tablePropertiesDbHour)
+    print('tablePropertiesDbHour length = ', len(tablePropertiesDbHour))
 
     # todo 取出记录
-    mtdType1 = result[0][13]
-    mtdType3 = result[0][15]
+    mtdType1 = mtd[0][13]
+    mtdType3 = mtd[0][15]
 
     print('mtdType1:', mtdType1)
 
@@ -98,20 +78,23 @@ def updateMtdByHour(task_detail_id):
             mtdType1, mtdType3))
 
     print("tableImportReason:", tableImportReason)
-
-    # result5 = dbpool.select(
-    #     "select pd.TTIME,pd.THOUR,ir.priority,ir.suggest,ir.reason,ir.importantreason from PROPERTIES_DB as pd join import_reason as ir on pd.TYPE3=ir.reason and pd.LEVEL_R = ir.level_r  and ir.importantreason !=0 limit 100")
-    # print("result5:", result5)
-    #
+    print("tableImportReason length:", len(tableImportReason))
 
     reasonSuggest = []
-    for x in tablePropertiesDb:
+
+    for x in tablePropertiesDbHour:
         pdType3 = x[2]
         pdLevelR = x[7]
+
+        # print('pdType3 = ', pdType3)
+        # print('pdLevelR = ', pdLevelR)
         for y in tableImportReason:
             irReason = y[1]
             irLevelR = y[2]
             irImportantreason = y[4]
+
+            # print('irReason =', irReason)
+            # print('irLevelR = ', irLevelR)
 
             if (pdType3 == irReason) and (pdLevelR == irLevelR) and (irImportantreason != 0):
                 rs = []
@@ -130,17 +113,20 @@ def updateMtdByHour(task_detail_id):
                 reasonSuggest.append(tuple(rs))
 
     print("reasonSuggest", reasonSuggest)
+    print("reasonSuggest length = ", len(reasonSuggest))
 
     reasonSuggestMatch = []
 
     # 按priority升序排列 取top5 并去重
 
-    reasonSuggestMatch = list(set(sorted(reasonSuggest, key=lambda x: x[2])))[0:5]
+    reasonSuggestMatch = list(set(sorted(reasonSuggest, key=lambda x: x[3])))[0:5]
 
     print("reasonSuggestMatch:", reasonSuggestMatch)
+    print("reasonSuggestMatch length = :", len(reasonSuggestMatch))
 
     #  即把相同的suggest,reason记录里面日期和小时合并到一起
 
+    return
     reasonSuggestMerge = []
 
     for i in reasonSuggestMatch:
@@ -443,5 +429,5 @@ def updateMtdByHour(task_detail_id):
 
 if __name__ == '__main__':
     # task_detail_id = 4379
-    task_detail_id = 4409
+    task_detail_id = 901
     updateMtdByHour(task_detail_id)

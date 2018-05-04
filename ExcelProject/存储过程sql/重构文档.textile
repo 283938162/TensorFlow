@@ -1,0 +1,68 @@
+表中字段索引：
+
+mtd - type1  13
+mtd - type3  15
+mtd - fault-datahour  36  
+mtd - Type_pro  37
+mtd - thour 19
+
+
+mtd - cellquestion 27
+mtd - cellproject  28
+mtd - cellsuggest  25
+
+mtd - ttime 2
+mtd - def_cellname 4
+
+mtd - def_cellname_chinese 6
+
+lte_lhxq_white - cellname  2
+
+
+
+tablePropertiesDbHour type3  2
+tablePropertiesDbHour lever_r 7
+
+select
+  pd.DEF_CELLNAME,  0
+  pd.TYPE1, 1
+  pd.TYPE3, 2
+  pd.TTIME, 3
+  pd.FAULT_DESCRIPTION, 4
+  pd.LABEL, 5
+  pd.THOUR, 6
+  pd.LEVEL_R, 7
+  pd.FAULT_OBJECT 8
+FROM PROPERTIES_DB  
+
+
+
+
+重写存储过程思路：
+
+判断指定工单号的工单存在 mtd
+
+判断工单日期是否正常
+
+把单条工单记录中的fault_datehour中的date提取出来，存放到一个list_date集合
+从小区属性库PROPERTIES_DB中提取一些字段，条件是时间段在单条工单记录中的日期集合中,即ttime in list_date and 小区名与工单记录中的小区名相同，这个查询到0~300条记录，存放到一个list集合中 @table_properties_db
+
+从工单、原因、方案预配置表 import_reason 中查出满足条件的记录，条件是 type1 == mtd.type1 且 type的内容 在 mtd.type3 之中，将查询到的满足条件的记录放到集合 @table_import_reason 中,数据量大约0~50000
+
+
+将@table_properties_db  与  @table_import_reason两个集合做关联，将满足条件的存放到变量@list_reason_suggest
+
+
+
+
+
+
+
+涉及的表：
+
+manager_task_detail   工单列表
+DATA_DATE	数据已经入库日期与时间
+PROPERTIES_DB	小区属性库
+import_reason	工单、原因、方案预配置
+
+

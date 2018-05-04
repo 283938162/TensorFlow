@@ -10,17 +10,35 @@
 # print(l)
 
 # # 拼接
-lll = ['2017-03-26:10', '05,17,22', '11']
+# lll = ['2017-03-26:10', '05,17,22', '11']
+# #
+# # print(','.join(lll))
 #
-# print(','.join(lll))
+# content = ','.join(lll)
+#
+# print(content)
+#
+# print(list(content))
+#
+#
+# a = []
+# a.append(content)
+# print(a)
 
-content = ','.join(lll)
-
-print(content)
-
-print(list(content))
+type1List = ['显性故障', '干扰', '容量']
 
 
-a = []
-a.append(content)
-print(a)
+# content = (','.join((map(lambda x: repr(x), ['显性故障', '干扰', '容量']))))
+# print(content)
+
+
+def getListInfo(bbb):
+    d = locals()
+    pname = list(d.keys())[0]
+
+    print(pname)
+    print('%s =  %s' % (pname, bbb))
+    print('the length of %s  = %s' % (pname, len(bbb)))
+
+
+getListInfo(type1List)

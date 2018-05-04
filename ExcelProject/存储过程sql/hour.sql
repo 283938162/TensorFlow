@@ -136,7 +136,7 @@ BEGIN
 					) t1
 				JOIN temp_manager_task_detail_hour_5 t2 ON t1.TTIME = t2.TTIME
 					AND t1.DEF_CELLNAME = t2.DEF_CELLNAME
-				JOIN import_reason r1 ON master.dbo.irh(t2.TYPE3) = r1.reason
+				JOIN import_reason r1 ON master.dbo.irh(t2.TYPE3) = r1.reason  --todo  master.dbo.irh(t2.TYPE3) ???
 					AND t2.LEVEL_R = r1.LEVEL_R
 				WHERE r1.representation = t1.type3
 					AND (

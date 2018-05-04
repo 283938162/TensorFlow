@@ -2,17 +2,20 @@
 
 from ExcelProject.PyDBPool import PyDBPool
 
-# 初始化数据库连接池对象
-dbpool = PyDBPool('mssql')
 
-'''
-@manageTask()  按天更新工单信息
+"""
+@updateMtdByDay()  按天更新工单信息
+
 @task_detail_id 传入的工单id参数
+@dbtype 数据库类型 mysql 或者 mssql
 
-'''
-
+"""
 
 def updateMtdByDay(task_detail_id, dbtype):
+
+    # 初始化数据库连接池对象
+    dbpool = PyDBPool(dbtype)
+
     if task_detail_id is None:
         print("工单号为空")
         return
@@ -511,5 +514,5 @@ def getMergeDate(reasonSuggestMerge):
 
 if __name__ == '__main__':
     # task_detail_id = 4379
-    task_detail_id = 3510
-    updateMtdByDay(task_detail_id, 'mssql')
+    task_detail_id = 6
+    updateMtdByDay(task_detail_id, 'mysql')
