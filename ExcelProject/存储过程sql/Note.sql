@@ -92,9 +92,6 @@ suggest,reason,[ttime1:thour1,thour2....,ttime2:thour1.....]
 
 
 
-9 关联 list_reason_suggest 和
-
-
 
 
 

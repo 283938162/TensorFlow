@@ -1,18 +1,24 @@
 from ExcelProject.PyDBPool import PyDBPool
 
-dbpool = PyDBPool('mysql')
+dbpool = PyDBPool('mssql')
 
-re = dbpool.select("SELECT type1,cellquestion FROM manager_task_detail WHERE TASK_DETAIL_ID = 6;")
-print(re)
-print('type1 =',re[0][0])
-print('type2 = ',re[0][1])
+num = dbpool.update("update manager_task_detail set cellquestion = '系统未发现影响小区性能的原因。333' WHERE TASK_DETAIL_ID = 1")
 
-if re[0][1] is None:
-    print("None")
-elif re[0][1] == '':
-    print('NULL')
-else:
-    print('other')
+
+print(num)
+
+
+
+# print(re)
+# print('type1 =',re[0][0])
+# print('type2 = ',re[0][1])
+#
+# if re[0][1] is None:
+#     print("None")
+# elif re[0][1] == '':
+#     print('NULL')
+# else:
+#     print('other')
 
 # 测试set
 

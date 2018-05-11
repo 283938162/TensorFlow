@@ -17,21 +17,21 @@ http://www.runoob.com/python/python-object.html
 #     "host": '39.108.231.238',
 #     "user": 'aliyun',
 #     "passwd": 'liu@2014',
-#     "dbname": 'ROSAS',
+#     "dbname": 'DBTest',
 #     "port": 3306,
 #     "charset": 'utf8'
 # }
 
 # 公司测试库
-
 mysqlInfo = {
-    "host": '120.76.26.161',
-    "user": 'cm',
-    "passwd": 'cm',
+    "host": '192.168.5.222',
+    "user": 'root',
+    "passwd": '000000',
     "dbname": 'ROSAS',
     "port": 3306,
     "charset": 'utf8'
 }
+
 
 sqlServerInfo = {
     "host": '120.25.238.73',
@@ -46,8 +46,7 @@ class PyDBPool:
     __pool = None
 
     # 构造函数中的变量全局可用
-    # 构造函数重载 传入数据库类型的参数
-    def __init__(self, dbclassify) -> None:
+    def __init__(self, dbclassify='mysql') -> None:
         # 构造函数 创建数据库连接，操作游标
         self.conn = PyDBPool.getDBConn(self, dbclassify)
         self.cursor = self.conn.cursor()
@@ -74,7 +73,6 @@ class PyDBPool:
                 __pool = PooledDB(creator=pymysql, mincached=1, maxcached=20, host=mysqlInfo['host'],
                                   user=mysqlInfo['user'], passwd=mysqlInfo['passwd'], db=mysqlInfo['dbname'],
                                   port=mysqlInfo['port'], charset=mysqlInfo['charset'])
-                print("__pool :", __pool)
                 print("mysql数据库连接池创建成功！")
                 return __pool.connection()
         elif dbclassify == 'mssql':
@@ -82,14 +80,13 @@ class PyDBPool:
                 __pool = PooledDB(creator=pymssql, mincached=1, maxcached=20, host=sqlServerInfo['host'],
                                   user=sqlServerInfo['user'], password=sqlServerInfo['passwd'],
                                   database=sqlServerInfo['dbname'], charset=sqlServerInfo['charset'])
-                print("__pool :", __pool)
-                print("sqlserver数据库连接池创建成功！")
+                print("SqlServer数据库连接池创建成功！")
                 return __pool.connection()
         else:
             print('请输入正确的数据库类型！mysql 或者 mssql')
 
     # 连接资源释放
-    def dispose(self):
+    def close(self):
         self.cursor.close()
         self.conn.close()
 
@@ -130,7 +127,18 @@ def sqlserver(param):
 
 
 if __name__ == '__main__':
-    mssqlRes = sqlserver('mssql')
+    dbpool = PyDBPool('mysql')
+    print(dbpool)
+
+    insertSql = "insert into tt(name,age) values ('zansa',12)"
+    updateSql = "update tt set name  = 'lisi' where id = 33"
+    deleteSql = "delete from tt where id = 31"
+
+    updateMtdSql = "update manager_task_detail set cellquestion = '系统未发现影响小区性能的原因。',cellproject = '需继续观察指标，或优化建议方案：需继续观察指标，或现场测试及对基站硬件进行排查。',Type_pro='None' where TASK_DETAIL_ID = 1"
+
+    num = dbpool.update(updateSql)
+    print('受影响条数 num = ', num)
 
     # todo
     # 释放资源
+    dbpool.close()

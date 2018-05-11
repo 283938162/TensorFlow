@@ -1,6 +1,6 @@
 import pymssql
 
-'''
+'''dbo
 https://www.cnblogs.com/malcolmfeng/p/6909293.html
 
 '''
@@ -21,10 +21,14 @@ print(conn)
 
 cursor = conn.cursor()
 
-sql = "select * from ROSAS_HN.dbo.manager_task_detail where TASK_DETAIL_ID = 3510"
+# sql = "select pd.TYPE3 FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME = '1-20799-1-133' and pd.TTIME in ('2016-02-01','2016-02-02');"
+sql = "SELECT count(*) as count FROM pi_cell WHERE (CONVERT(FLOAT, pi55) + CONVERT(FLOAT, pi56)) = 0 AND CONVERT(FLOAT, pi378) >= 0"
 
-cursor.execute(sql)
+# cursor.execute(sql)
+#
+# result = cursor.fetchone()
+#
+# print(result)
 
-result = cursor.fetchall()
 
-print(result)
+
