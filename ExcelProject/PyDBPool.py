@@ -1,11 +1,10 @@
 import pymysql
 import pymssql
-from DBUtils.PooledDB import PooledDB
-from sklearn import metrics
+import time
+import sys
+import re
 
-import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.cluster import DBSCAN
+from DBUtils.PooledDB import PooledDB
 
 '''
 python object
@@ -13,24 +12,24 @@ http://www.runoob.com/python/python-object.html
 '''
 
 # 阿里云 测试数据
-# mysqlInfo = {
-#     "host": '39.108.231.238',
-#     "user": 'aliyun',
-#     "passwd": 'liu@2014',
-#     "dbname": 'DBTest',
-#     "port": 3306,
-#     "charset": 'utf8'
-# }
-
-# 公司测试库
 mysqlInfo = {
-    "host": '192.168.5.222',
-    "user": 'root',
-    "passwd": '000000',
-    "dbname": 'ROSAS',
+    "host": '39.108.231.238',
+    "user": 'aliyun',
+    "passwd": 'liu@2014',
+    "dbname": 'DBTest',
     "port": 3306,
     "charset": 'utf8'
 }
+
+# 公司测试库
+# mysqlInfo = {
+#     "host": '192.168.5.222',
+#     "user": 'root',
+#     "passwd": '000000',
+#     "dbname": 'ROSAS',
+#     "port": 3306,
+#     "charset": 'utf8'
+# }
 
 
 sqlServerInfo = {
@@ -107,37 +106,105 @@ class PyDBPool:
         except Exception as e:
             print(e)
 
-    # 查询
-    def select(self, sql):
-        print("sql = ", sql)
+    # 批量插入[[],[],[],[]...]
+    def insertBatch(self, batchList, tableName):
+        for row in batchList:
+            insertSql = "insert into %s values(%s)" % (tableName, str(row)[1:][:-1])
+            self.update(insertSql)
 
+    def timeCal(select):
+        def wrapper(*args, **kwargs):
+            starttime = time.time()
+            result = select(*args, **kwargs)
+            endtime = time.time()
+            timeInterval = endtime - starttime
+            print('timeInterval: ', timeInterval)
+            return result
+
+        return wrapper
+
+    # 查询(1) 查询记录数 (2) sql Noe查询返回满足条件的所有记录  (3) 查询返回满足条件的所有记录
+    # fetch 三种方式 count  one  all
+    # 默认返回单条记录
+    @timeCal
+    def select(self, sql, fetch='one'):
         self.cursor.execute(sql)
+        if fetch == 'one':
+            return self.cursor.fetchone()
+        elif fetch == 'all':
+            return self.cursor.fetchall()
+        elif fetch == 'count':
+            return self.cursor.fetchone()[0]
 
-        result = self.cursor.fetchall()
+    #
+    # def sqlserver(param):
+    #     dbpool = PyDBPool('mssql')
+    #     mssqlRes = dbpool.select("select * from ROSAS_HN.dbo.manager_task_detail where TASK_DETAIL_ID = 3510")
+    #     print(mssqlRes)
+    #     dbpool.dispose()
+    #     return mssqlRes
 
-        return result
-
-
-def sqlserver(param):
-    dbpool = PyDBPool('mssql')
-    mssqlRes = dbpool.select("select * from ROSAS_HN.dbo.manager_task_detail where TASK_DETAIL_ID = 3510")
-    print(mssqlRes)
-    dbpool.dispose()
-    return mssqlRes
+    # step  切片大小
+    # sql 查询数据的sql
+    def tableSlice(self, sql, step=2):
+        """
+        :param tableName: 查询表表名
+        :param sql: 查询数据库sql
+        :param step: 切片大小(每次查询取多少人条),默认取1000条
+        :return: loopNums 循环次数  cursor流动游标
+        """
+        sqlCount = re.sub(r".*select(.*)from\s+", 'select count(*) from ', sql)
+        count = self.select(sqlCount)
+        loopNums = int((count / step) + 1)
+        self.cursor.execute(sql)
+        return loopNums, self.cursor
 
 
 if __name__ == '__main__':
     dbpool = PyDBPool('mysql')
     print(dbpool)
 
-    insertSql = "insert into tt(name,age) values ('zansa',12)"
-    updateSql = "update tt set name  = 'lisi' where id = 33"
-    deleteSql = "delete from tt where id = 31"
+    """
+    批量插入
+    """
 
-    updateMtdSql = "update manager_task_detail set cellquestion = '系统未发现影响小区性能的原因。',cellproject = '需继续观察指标，或优化建议方案：需继续观察指标，或现场测试及对基站硬件进行排查。',Type_pro='None' where TASK_DETAIL_ID = 1"
+    # batchList = [[40, '试试', 12], [41, '事宜', 13], [42, '事二', 14]]
+    # dbpool.insertBatch(batchList, 'tt')
 
-    num = dbpool.update(updateSql)
-    print('受影响条数 num = ', num)
+
+
+    # sql = "select ID,DEF_CELLNAME from PROPERTIES_DB limit 1000"
+    # t1 = time.time()
+    # print(dbpool.select(sql, 'one'))
+    # t2 = time.time()
+    # print('t2 - t1 = ', (t2 - t1))
+
+    # dbpool.select()  使用装饰器测试
+    # print(dbpool.select(sql, 'one'))  # timeInterval:  0.03125286102294922
+
+    """
+        切片
+    """
+    # step = 1000
+    # loopNums, cursor = dbpool.tableSlice(sql, step)
+    #
+    # for i in range(0, loopNums):
+    #     stepList = []
+    #     for x in range(0, step):
+    #         stepList.append(cursor.fetchone())
+    #     print("list: " + str(i) + ": ", stepList)
+
+    # time.sleep(1)
+    # stepList  todo
+
+    # insertSql = "insert into tt(name,age) values ('zansa',12)"
+    # updateSql = "update tt set name  = 'lisi' where id = 33"
+    # deleteSql = "delete from tt where id = 31"
+    #
+    # updateMtdSql = "update manager_task_detail set cellquestion = '系统未发现影响小区性能的原因。',cellproject = '需继续观察指标，或优化建议方案：需继续观察指标，或现场测试及对基站硬件进行排查。',Type_pro='None' where TASK_DETAIL_ID = 1"
+    #
+    # num = dbpool.update(updateSql)
+    # print('受影响条数 num = ', num)
 
     # todo
     # 释放资源

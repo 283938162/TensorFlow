@@ -28,10 +28,97 @@
 #         print('not in')
 
 
-import time
+# import time
+#
+# date = time.strftime('%Y-%m-%d', time.localtime())
+#
+# print(date)
+#
+# print(date+'.log')
 
-date = time.strftime('%Y-%m-%d', time.localtime())
 
-print(date)
+# print(int(3.2)) # 向下取证
 
-print(date+'.log')
+# num = 5
+# for i in range(0,5):
+#     print(i)
+
+
+# sql = 'select count(*) from emp'
+# print('count(*)' or 'count(1)' in sql)
+# print('count(*)' in sql or 'count(1)' in sql)
+
+
+# import sys
+#
+# print(sys.getsizeof(1))
+# print(sys.getsizeof("abc"))
+
+"""
+正则 替换
+"""
+
+# import re
+#
+# sql = 'select ID,name from emp where  ...'
+# # 正则替换成 sql = 'select count(*) from emp where ...'
+#
+# sqlCount = re.sub(r'.*select(.*)from\s+', 'select count(*) from', sql)
+#
+# print('s = ', sqlCount)
+
+# pda = []
+#
+# pda.append(['a',12])
+#
+# print(pda)
+
+
+# 去壳
+# listStr = ['40', '试试', '12']
+# list = [40, '试试', 12]  # 如果list中有int类型 拼接出错
+# print(','.join(listStr))  # 40,试试,12 , 而且这种去壳也不行 单引号去掉了 不能保持原貌
+# # print(','.join(list))  # TypeError: sequence item 0: expected str instance, int found
+#
+# print(type(list))
+# print(type(str(list)))
+# print((str(list)[1:][:-1]))
+
+#
+# file = open('pdc.txt','r+')
+# lines = []
+# for line in file:
+#     lines.append(line.strip('\n')) # Python strip() 方法用于移除字符串头尾指定的字符（默认为空格）。
+# print(','.join(lines)) # 字符串连接
+
+
+# def getMtdHours(fault_datehour):
+#     list_hours = []
+#     date_hours = fault_datehour.split(';')
+#     for y in date_hours:
+#         hours = y.split(':')[1]
+#         for h in hours.split(","):
+#             list_hours.append(int(h))
+#     print('list_hours = ', list_hours)
+
+
+
+
+
+
+# getMtdHours('2015-12-04:08,09,14;2015-12-05:14,15')
+
+#
+# hours = []
+# sh = '08,09,14,14,15'
+# print(hours)
+
+
+h = '09,18,19,16,13,15,10,14,20,17,21,11'
+
+a = [int(i) for i in h.split(",")]
+print(a)
+
+b= [8,9,10]
+
+print(list(set(a).intersection(set(b))))
