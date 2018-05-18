@@ -93,7 +93,7 @@ class PyDBPool:
     def update(self, sql):
         print("sql = ", sql)
         try:
-            num = self.cursor.execute(sql)
+            num = self.cursor.execute(sql.replace('None','null'))
             if sql[0] == 'd':
                 print("数据删除成功！")
             elif sql[0] == 'i':
@@ -110,7 +110,7 @@ class PyDBPool:
     def insertBatch(self, batchList, tableName):
         for row in batchList:
             insertSql = "insert into %s values(%s)" % (tableName, str(row)[1:][:-1])
-            self.update(insertSql)
+            self.update(insertSql.replace('None', 'null'))
 
     def timeCal(select):
         def wrapper(*args, **kwargs):
@@ -126,8 +126,8 @@ class PyDBPool:
     # 查询(1) 查询记录数 (2) sql Noe查询返回满足条件的所有记录  (3) 查询返回满足条件的所有记录
     # fetch 三种方式 count  one  all
     # 默认返回单条记录
-    @timeCal
-    def select(self, sql, fetch='one'):
+    # @timeCal   # 先临时查询所有
+    def select(self, sql, fetch='all'):
         self.cursor.execute(sql)
         if fetch == 'one':
             return self.cursor.fetchone()
@@ -167,13 +167,12 @@ if __name__ == '__main__':
     """
     批量插入
     """
+    # None 不能入库  数据库对应的是NULL
+    batchList = [[433, '试试', 12], [444, '事宜', 13], [455,None,14]]
+    # batchList = [[45, None, 14], [46, None, 17]]
+    dbpool.insertBatch(batchList, 'tt')
 
-    # batchList = [[40, '试试', 12], [41, '事宜', 13], [42, '事二', 14]]
-    # dbpool.insertBatch(batchList, 'tt')
-
-
-
-    # sql = "select ID,DEF_CELLNAME from PROPERTIES_DB limit 1000"
+    # sql = "select ID,DEF_C        ELLNAME from PROPERTIES_DB limit 1000"
     # t1 = time.time()
     # print(dbpool.select(sql, 'one'))
     # t2 = time.time()

@@ -182,7 +182,7 @@ def mysqlDBTest():
         conn.close()
 
 
-mysqlDBTest()
+# mysqlDBTest()
 
 
 def mssqlMtdTest():

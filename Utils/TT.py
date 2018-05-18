@@ -113,12 +113,46 @@
 # sh = '08,09,14,14,15'
 # print(hours)
 
+#
+# h = '09,18,19,16,13,15,10,14,20,17,21,11'
+#
+# a = [int(i) for i in h.split(",")]
+# print(a)
+#
+# b= [8,9,10]
+#
+# print(list(set(a).intersection(set(b))))
 
-h = '09,18,19,16,13,15,10,14,20,17,21,11'
 
-a = [int(i) for i in h.split(",")]
-print(a)
+# pdo = []
+#
+# pdo.append(['a',2])
+#
+# print(pdo)
 
-b= [8,9,10]
+tt = [[45,None, 14],[46,None,17]]
+# t = if
+# print(t)
 
-print(list(set(a).intersection(set(b))))
+# for i in tt if len(tt) > 0:
+
+
+
+# Rsrp =  -120
+# if Rsrp is not None and Rsrp < -110:
+#     print('Hello')
+
+
+# tt = []
+
+ori = 'hi'+':'
+a = 2
+
+if  a<3:
+    ori+='zhang'
+
+if a > 3:
+    ori = ori + "ZHANG"
+
+print(ori)
+
