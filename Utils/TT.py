@@ -84,7 +84,7 @@
 # print(type(str(list)))
 # print((str(list)[1:][:-1]))
 
-#
+
 # file = open('pdc.txt','r+')
 # lines = []
 # for line in file:
@@ -100,10 +100,6 @@
 #         for h in hours.split(","):
 #             list_hours.append(int(h))
 #     print('list_hours = ', list_hours)
-
-
-
-
 
 
 # getMtdHours('2015-12-04:08,09,14;2015-12-05:14,15')
@@ -130,12 +126,11 @@
 #
 # print(pdo)
 
-tt = [[45,None, 14],[46,None,17]]
+tt = [[45, None, 14], [46, None, 17]]
 # t = if
 # print(t)
 
 # for i in tt if len(tt) > 0:
-
 
 
 # Rsrp =  -120
@@ -145,14 +140,54 @@ tt = [[45,None, 14],[46,None,17]]
 
 # tt = []
 
-ori = 'hi'+':'
-a = 2
+# ori = 'hi'+':'
+# a = 2
+#
+# if  a<3:
+#     ori+='zhang'
+#
+# if a > 3:
+#     ori = ori + "ZHANG"
+#
+# print(ori)
 
-if  a<3:
-    ori+='zhang'
 
-if a > 3:
-    ori = ori + "ZHANG"
+# sz = ''
+# for i in range(5):
+#     sz+=str(i)+','
+#
+# print('sz = ',sz)
 
-print(ori)
 
+# cellDict = {
+#     '永州蓝山岭脚HLD39001044440PT-1': [('X2接口故障告警', '一般严重', '建议参数值为：-116~-112dbm', 286), ('栅格质差', '一般严重', '建议 测试!!!', 300),
+#                                  ('投诉用户弱覆盖', '一般严重', '测试还是测试!!!', 250), ('栅格质差', '一般严重', '建议 测试!!!', 336)],
+#     '永州蓝山火市七甲HLD39001044435PT-22': [('X2接口故障告警', '一般严重', '建议参数值为：-116~-112dbm', 286)],
+#     '张家界永定区老吉大食堂ZLB8300465381PT-3': [('X2接口故障告警', '一般严重', '建议参数值为：-116~-112dbm', 286)]}
+#
+# # 对集合中的群体
+#
+#
+# for cell in cellDict.keys():
+#     pdType3List = ''
+#     irSuggestList = ''
+#     for i in sorted(cellDict[cell], key=lambda x: x[3])[:3]:
+#         pdType3List += i[0] + ','
+#         irSuggestList += i[2] + ','
+#     print('pdType3List = ', pdType3List[0:-1])
+#     print('irSuggestList = ', irSuggestList[0:-1])
+
+
+# def pr():
+#     print('Hi')
+
+# if not None:
+#     print('hello!')
+
+# a = [1,2,3,4]
+# c = 'abcdef'
+# print(a[::-1])
+# print(c[::-1])
+
+olist = [(1,2),(3,4)]
+print([list(i) for i in olist])

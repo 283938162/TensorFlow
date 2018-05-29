@@ -8,8 +8,8 @@ ComplainTask  投诉工单 数据流处理
 """
 
 
-# Manager_task_detail.fault_datehour包含PROPERTIES_DB.thour   hour有交集就ok
 def getTablePropertiesDB(dbPool, cell, mtdTTime, list_hours):
+    """根据detail表中信息查询出满足条件的小区信息"""
     tablePropertiesDb = dbPool.select(
         "select convert(nvarchar(255),pd.DEF_CELLNAME_CHINESE) as DEF_CELLNAME_CHINESE,convert(nvarchar(255),pd.TYPE3) as TYPE3,pd.TTIME,convert(nvarchar(255),pd.LEVEL_R) as LEVEL_R,pd.THOUR FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME_CHINESE = '%s' and pd.TTIME = '%s'" % (
             (cell, mtdTTime)))
@@ -21,6 +21,8 @@ def getTablePropertiesDB(dbPool, cell, mtdTTime, list_hours):
     # print("tablePropertiesDb = :", tablePropertiesDb)
     # print("tablePropertiesDb length = ", len(tablePropertiesDb))
 
+    # list_hours =  [8, 9, 12, 17, 14, 15]
+    # Manager_task_detail.fault_datehour包含PROPERTIES_DB.thour   hour有交集就ok
     tablePropertiesDbNew = []
     for t in tablePropertiesDb:
         # print('t = ', t)
@@ -58,14 +60,21 @@ def updateMtdQuestionAndProject(dbPool, newMtdCellQuestion, newMtdCellProject, t
 
 
 def updateCell(dbPool, taskId, cellList, mtdTTime, list_date, mtdType1, mtdType3):
+    """呈现小区级原因"""
     index = 1
-    tableImportReason = getTableImportReason(dbPool, mtdType1, mtdType3)  # 3
-    cellDict = {}
+    # tableImportReason = getTableImportReason(dbPool, mtdType1, mtdType3)  # 3
+    tableImportReason = dbPool.select(
+        "select ir.reason,ir.level_r,ir.suggest,ir.priority from import_reason as ir where ir.type1 = '%s' and ir.representation = '%s'" % (
+            mtdType1, mtdType3))
 
+    if len(tableImportReason) == 0: return
+
+    cellDict = {}
     for cell in cellList:  # 3
         print('cell = ', cell)
         tablePropertiesDB = getTablePropertiesDB(dbPool, cell, mtdTTime, list_date)
 
+        # 一个小区名可能多个type3, 过滤掉重复的
         cellDict[cell] = []
         type3List = []
 
@@ -127,88 +136,6 @@ def updateCell(dbPool, taskId, cellList, mtdTTime, list_date, mtdType1, mtdType3
     #     updateMtdQuestionAndProject(dbPool, newMtdCellQuestion, newMtdCellProject, taskId)
 
 
-"""
-引入表切片 测试
-"""
-
-
-def updateCellSliceTest(dbPool, taskId, cellList, mtdTTime, list_date, mtdType1, mtdType3):
-    index = 1
-    cellDict = {}
-
-    # tableImportReasonSlice = getTableImportReason(dbPool, mtdType1, mtdType3)  # 3
-    tableImportReasonSliceCursor = dbPool.select(
-        "select ir.reason,ir.level_r,ir.suggest,ir.priority from import_reason as ir where ir.type1 = '%s' and ir.representation = '%s'" % (
-            mtdType1, mtdType3), 'many')
-
-    while True:
-        tableImportReason = tableImportReasonSliceCursor.fetchmany(1)
-
-        if len(tableImportReason) > 0:
-            print('tableImportReason = ', tableImportReason)
-            for cell in cellList:  # 3
-                print('cell = ', cell)
-                tablePropertiesDbSliceCursor = dbPool.select(
-                    "select convert(nvarchar(255),pd.DEF_CELLNAME_CHINESE) as DEF_CELLNAME_CHINESE,convert(nvarchar(255),pd.TYPE3) as TYPE3,pd.TTIME,convert(nvarchar(255),pd.LEVEL_R) as LEVEL_R,pd.THOUR FROM PROPERTIES_DB as pd where pd.DEF_CELLNAME_CHINESE = '%s' and pd.TTIME = '%s'" % (
-                        (cell, mtdTTime)), 'many')
-                while True:
-                    tablePropertiesDB = tablePropertiesDbSliceCursor.fetchmany(1)
-                    if len(tablePropertiesDB) > 0:
-                        print('tablePropertiesDB = ', tablePropertiesDB)
-
-                        cellDict[cell] = []
-                        type3List = []
-
-                        for ir in tableImportReason:  # 3
-                            print('ir = ', ir)
-                            irReason = ir[0]
-                            irLevelR = ir[1]
-
-                            irSuggest = ir[2]
-
-                            # print('pdType3 = ', pdType3)
-                            # print('pdLevelR = ', pdLevelR)
-                            for pd in tablePropertiesDB:  # 3
-                                print('pd = ', pd)
-                                pdType3 = pd[1]
-                                pdLevelR = pd[3]
-
-                                # print('irReason = ', irReason)
-                                # print('irLevelR = ', irLevelR)
-
-                                print('----------pdType3 = ', pdType3)
-                                print('----------irReason = ', irReason)
-
-                                if (pdType3 == irReason) and (pdLevelR == irLevelR):
-                                    # print('type3 === ', pdType3)
-                                    # print('type3 === ', pdType3)
-
-                                    print("*****************cell = '%s',type3 = '%s'" % (cell, pdType3))
-
-                                    if pdType3 not in type3List:
-                                        type3List.append(pdType3)
-                                        cellDict[cell].append(ir)
-                    else:
-                        print("inner while end")
-                        break
-
-        else:
-            print("outer while end")
-            break
-
-    # 列出关联出的type3
-    print('更新cell' + str(index) + ' 完成')
-    index += 1
-
-    print('cellDict = ', cellDict)
-    print("小区级原因更新完成!")
-
-    # 根绝priority排序 取前三reason
-
-    if len(cellDict) > 0:
-        resultOn(cellDict, dbPool, taskId, 'cell')
-
-
 def getTablePropertiesDBOTT(dbPool, cell, mtdDefCellName):
     print('mtdDefCellName = ', mtdDefCellName)
 
@@ -234,11 +161,97 @@ def updateOTT(dbPool, taskId, mtdDefCellName, cellList, mtdType1, mtdType3):
     ottDict = {}
 
     tableImportReason = getTableImportReason(dbPool, mtdType1, mtdType3)
+
+    # tableImportReason = dbPool.select(
+    #     "select ir.reason,ir.level_r,ir.suggest,ir.priority from import_reason as ir where ir.type1 = '%s' and ir.representation = '%s'" % (
+    #         mtdType1, mtdType3))
+
+    if len(tableImportReason) == 0: return
+
     for cell in cellList:
 
         ottDict[cell] = []
         type3List = []
         tablePropertiesDBOTT = getTablePropertiesDBOTT(dbPool, cell, mtdDefCellName)
+
+        for ir in tableImportReason:
+            irReason = ir[0]
+            irLevelR = ir[1]
+            irSuggest = ir[2]
+            print('irReason = ', irReason)
+            print('irLevelR = ', irLevelR)
+            for pdo in tablePropertiesDBOTT:
+                pdoType3 = pdo[2]
+                pdoLevelR = pdo[3]
+
+                print('pdoType3 = ', pdoType3)
+                print('pdoLevelR = ', pdoLevelR)
+
+                if (pdoType3 == irReason) and (pdoLevelR == irLevelR):
+                    print("*****************cell = '%s',type3 = '%s'" % (cell, pdoType3))
+
+                    # PROPERTIES_DB.type3(type3有多个用逗号隔开)?
+                    # 怎么判断有多个type3? 哪个维度一对多
+
+                    if pdoType3 not in type3List:
+                        type3List.append(pdoType3)
+                        ottDict[cell].append(ir)
+
+    print("区域级原因更新完成!")
+
+    # 列出关联出的type3
+    print('更新ott' + str(index) + ' 完成')
+    index += 1
+
+    print('#########################ottDict = ', ottDict)
+
+    # 根绝priority排序 取前三reason
+    if len(ottDict) > 0:
+        resultOn(ottDict, dbPool, taskId, 'ott')
+
+    # for cell in ottDict.keys():
+    #     pdoType3List = ''
+    #     irSuggestList = ''
+    #     for i in sorted(ottDict[cell], key=lambda x: x[3])[:3]:
+    #         pdoType3List += i[0] + ','
+    #         irSuggestList += i[2] + ','
+    #     # print('pdType3List = ', pdType3List[0:-1])
+    #     # print('irSuggestList = ', irSuggestList[0:-1])
+    #     newMtdOTTQuestion = cell + ':' + pdoType3List[0:-1] + '\r'
+    #     newMtdOTTProject = cell + ':' + irSuggestList[0:-1] + '\r'
+    #     print('newMtdCellQuestion = ', newMtdOTTQuestion)
+    #     print('newMtdCellProject = ', newMtdOTTProject)
+    #
+    #     updateMtdQuestionAndProject(dbPool, newMtdOTTQuestion, newMtdOTTProject, taskId)
+
+
+def updateOTTJoin(dbPool, taskId, mtdDefCellName, cellList, mtdType1, mtdType3):
+    # 初始化 cellquestion字段和cellproject字段
+    # dbPool.update(
+    #     "update manager_task_detail set dbo.manager_task_detail.cellquestion = manager_task_detail.cellquestion+'%s',dbo.manager_task_detail.cellproject=manager_task_detail.cellproject + '%s' where dbo.manager_task_detail.TASK_DETAIL_ID = %d;" % (
+    #         '栅格级原因:', '栅格级建议:', taskId))
+
+    index = 1
+    ottDict = {}
+
+    # tableImportReason = getTableImportReason(dbPool, mtdType1, mtdType3)
+
+    tableImportReason = dbPool.select(
+        "select ir.reason,ir.level_r,ir.suggest,ir.priority from import_reason as ir where ir.type1 = '%s' and ir.representation = '%s'" % (
+            mtdType1, mtdType3))
+
+    if len(tableImportReason) == 0: return
+
+    for cell in cellList:
+
+        ottDict[cell] = []
+        type3List = []
+        # tablePropertiesDBOTT = getTablePropertiesDBOTT(dbPool, cell, mtdDefCellName)
+
+        tablePropertiesDBOTT = dbPool.select(
+            "select id,convert(nvarchar(255),def_cellname_chinese) as def_cellname_chinese,convert(nvarchar(255),type3) as type3,convert(nvarchar(255),level_r) as level_r FROM properties_db_ott where DEF_CELLNAME_CHINESE = '%s' and ID = '%s'" % (
+                cell, mtdDefCellName))
+
         for ir in tableImportReason:
             irReason = ir[0]
             irLevelR = ir[1]
@@ -291,6 +304,7 @@ def updateOTT(dbPool, taskId, mtdDefCellName, cellList, mtdType1, mtdType3):
 
 
 def getMtdHours(fault_datehour):
+    """提取detail表中fault_datehour字段的小时内容"""
     list_hours = []
     date_hours = fault_datehour.split(';')
     for y in date_hours:
@@ -483,32 +497,34 @@ def updateUser(dbPool, taskId, cellList, mtdDefCellName, mtdTTime, list_hours, m
 
 
 def updateComplainTask(taskId, dbPool):
+    """对单条工单工单进行更新 呈现其小区级原因 栅格级原因和用户级原因"""
+
     mtd = dbPool.select(
         "select TASK_DETAIL_ID,TTIME,ALLTTIME,DEF_CELLNAME,DEF_CELLNAME_CHINESE,type1,type3,THOUR,relation_cell,cellsuggest,cellquestion,cellproject,fault_datehour,REPLY from dbo.manager_task_detail where TASK_DETAIL_ID = %d" % (
             taskId))
     relation_cell = mtd[0][8]
     cellList = relation_cell.strip().split(',')
-    print('mtd = ', mtd)
     mtdTTime = mtd[0][1]
-    mtdDefCellName = mtd[0][3]
+    mtdDefCellName = mtd[0][3]  # 投诉工单中 def_cellanme 映射的是投诉工单号
     mtdType1 = mtd[0][5]
     mtdType3 = mtd[0][6]
     mtdFaultDatehour = mtd[0][12]
     list_hours = getMtdHours(mtdFaultDatehour)
-    print('mtdDefCellName/投诉工单号 = ', mtdDefCellName)  # mtd cellname 放的是投诉工单号
+    print('mtd = ', mtd)
+    print('mtdDefCellName/投诉工单号 = ', mtdDefCellName)
 
     # 小区级原因生成
     print('*********************小区级原因生成*************************')
-    updateCell(dbPool, taskId, cellList, mtdTTime, list_hours, mtdType1, mtdType3)
+    # updateCell(dbPool, taskId, cellList, mtdTTime, list_hours, mtdType1, mtdType3)
     # updateCellSliceTest(dbPool, taskId, cellList, mtdTTime, list_hours, mtdType1, mtdType3)  # 引入表切片测试
 
-    # # 区域级原因生成
+    # # # 区域级原因生成
     print('*********************区域级原因生成*************************')
     updateOTT(dbPool, taskId, mtdDefCellName, cellList, mtdType1, mtdType3)
-    #
-    # # 用户级原因生成
-    print('*********************用户级原因生成*************************')
-    updateUser(dbPool, taskId, cellList, mtdDefCellName, mtdTTime, list_hours, mtdType1, mtdType3)
+    # #
+    # # # 用户级原因生成
+    # print('*********************用户级原因生成*************************')
+    # updateUser(dbPool, taskId, cellList, mtdDefCellName, mtdTTime, list_hours, mtdType1, mtdType3)
 
 
 def getComplainTaskID(dbPool):
@@ -524,14 +540,23 @@ def getSiteInfo(dbpool, coCellname):
     tableSiteInfo = dbpool.select(
         "select DEF_CELLNAME,city,region,TOWN from SITE_INFO where ADDRESS = '1' and DEF_CELLNAME_CHINESE = '%s'" % (
             coCellname))
-    return tableSiteInfo[0][0], tableSiteInfo[0][1], tableSiteInfo[0][2], tableSiteInfo[0][3]
+
+    if len(tableSiteInfo) > 0:
+        return tableSiteInfo[0][0], tableSiteInfo[0][1], tableSiteInfo[0][2], tableSiteInfo[0][3]
+    else:
+        return None, None, None, None
 
 
 # 栅格级原因  Complain_OTT -> 入属性库 properties_db_ott
 def updatePropertiesDbAreaAndOTT(dbPool):
-    tableComplainOTT = dbPool.select("select * from dbo.Complain_OTT where status is null", 'all')
+    """
+    栅格级原因入库\n
+    (1)栅格弱覆盖
+    Complain_OTT中有新数据进来即status为空的数据，筛选Complain_OTT中Avg_Rsrp小于-110的记录，入属性库properties_db_ott
+    """
+    tableComplainOTT = dbPool.select(
+        "select ID,WO_ID,Cell_Name,GridId,Grid_X,Grid_Y,Avg_Rsrp,Avg_Sinr from dbo.Complain_OTT where status is null")
 
-    # pdaList = []
     pdoList = []
     if len(tableComplainOTT) > 0:
         for ott in tableComplainOTT:
@@ -546,6 +571,7 @@ def updatePropertiesDbAreaAndOTT(dbPool):
 
             siDefCellname, siCity, siRegion, siTown = getSiteInfo(dbPool, coCellname)
 
+            # 栅格弱覆盖
             if coAvgRsrp is not None and float(coAvgRsrp) < -110:
                 id = ott[1]
                 def_cellname = siDefCellname
@@ -569,7 +595,7 @@ def updatePropertiesDbAreaAndOTT(dbPool):
                 topn = None
                 pri = None
                 cur_value = coAvgRsrp
-                level_r = None
+                level_r = '一般严重'
                 rule_value = None
                 fault_total = None
                 solution = None
@@ -604,7 +630,7 @@ def updatePropertiesDbAreaAndOTT(dbPool):
                 topn = None
                 pri = None
                 cur_value = coAvgSinr
-                level_r = None
+                level_r = '一般严重'
                 rule_value = None
                 fault_total = None
                 solution = None
@@ -616,13 +642,12 @@ def updatePropertiesDbAreaAndOTT(dbPool):
                      ])
 
     else:
-        print("未查到满足条件的数据!")
+        print("Complain_OTT表未查到满足条件的数据!")
 
     print('pdoList', pdoList)
     if len(pdoList) > 0:
         if dbPool.insertBatch(pdoList, 'properties_db_ott'):
-            dbPool.update("update Complain_OTT set status = null where status is null") # 批量插入成功则更新!否则不
-
+            dbPool.update("update Complain_OTT set status = 1 where status is null")
 
     # # 然后更新Complain_OTT 的 status 为 1
     # #  怎么判断上面操作成功? 更新status呢?
@@ -639,35 +664,44 @@ def getPdcCellname(dbPool, AbnormalEvent_cell):
 
 
 def updatePropertiesDbCs(dbPool):
-    tableComplainUser = dbPool.select("select * from Complain_User where status is null", 'all')
+    """
+    (1) 用户弱覆盖
+    Complain_User有新数据进来即status为空的数据，筛选Complain_User中RSRP小于-110的记录入属性库properties_db_cs
+
+    (2) 用户cause定界
+    当Complain_User有新数据进来即status为空，根据条件Complain_User. Interface_type=IMPORT_Complain_CONFIG.Interface_type，且Complain_User. CauseValue=IMPORT_Complain_CONFIG.CauseValue，关联出IMPORT_Complain_CONFIG. AbnormalEvent、IMPORT_Complain_CONFIG.Reason字段。入属性库properties_db_cs中
+    """
+    tableComplainUser = dbPool.select(
+        "select ID,WO_ID,AbnormalEvent_Time,ttime,thour,Interface_type,CauseValue,def_cellname_chinese,AbnormalEvent_Cell,RSRP from Complain_User where status is null")
 
     pdcList = []
     for user in tableComplainUser:
-        cuRsrp = float(user[12])
-        AbnormalEvent_cell = user[9]
-        # print('AbnormalEvent_cell = ', AbnormalEvent_cell)  # 6729271
+        cuWOID = user[1]
+        cuTime = user[3]
+        cuHour = user[4]
+        cuDefCellnameChinese = user[7]
 
-        AbnormalEvent_Time = user[2]
-        # print('AbnormalEvent_Time = ', AbnormalEvent_Time)
+        AbnormalEvent_cell = user[8]
+        cuRsrp = float(user[9])
 
         siDefCellname, siCity, siRegion, siTown, siGrid = getPdcCellname(dbPool, AbnormalEvent_cell)
 
         if cuRsrp is not None and cuRsrp < -110:
-            CS_ID = user[1]  # WO_ID
+            CS_ID = cuWOID  # WO_ID
             DEF_CELLNAME = siDefCellname
             TYPE1 = 'TS'
             TYPE2 = '覆盖'
             TYPE3 = '投诉用户弱覆盖'
             FAULT_OBJECT = CS_ID
-            TTIME = user[3]
+            TTIME = cuTime
             city = siCity
             REGION = siRegion
             TOWN = siTown
             GRID = siGrid
-            DEF_CELLNAME_CHINESE = user[8]
-            FAULT_DESCRIPTION = '用户占用小区' + DEF_CELLNAME_CHINESE + '用户弱覆盖'
+            DEF_CELLNAME_CHINESE = cuDefCellnameChinese
+            FAULT_DESCRIPTION = '用户占用小区' + DEF_CELLNAME_CHINESE + '存在用户弱覆盖'
             LABEL = '原因'
-            THOUR = user[4]
+            THOUR = cuHour
             CH_RAT = None
             TOPN = None
             PRI = None
@@ -686,32 +720,32 @@ def updatePropertiesDbCs(dbPool):
         # 将满足用户cause定界的记录也放到pdcList,一起入到属性库properties_db_cs中
 
         cuInterfaceType = user[5]
-        cuCauseValue = user[7]
+        cuCauseValue = user[6]
 
         # print('cuInterfaceType = ', cuInterfaceType)
         # print('cuCauseValue = ', cuCauseValue)
 
         tableTableImportCompainConfig = dbPool.select(
             "select Interface_type,AbnormalEvent,CauseValue,Reason from IMPORT_Complain_CONFIG where Interface_type = '%s' and CauseValue= '%s'" % (
-                cuInterfaceType, cuCauseValue), 'all')  # 大约100多条
+                cuInterfaceType, cuCauseValue))  # 大约100多条
 
         if len(tableTableImportCompainConfig) > 0:
             for icc in tableTableImportCompainConfig:
-                CS_ID = user[1]  # WO_ID
+                CS_ID = cuWOID  # WO_ID
                 DEF_CELLNAME = siDefCellname
                 TYPE1 = icc[1]
                 TYPE2 = 'TS'
                 TYPE3 = icc[3]
                 FAULT_OBJECT = CS_ID
-                TTIME = user[3]
+                TTIME = cuTime
                 city = siCity
                 REGION = siRegion
                 TOWN = siTown
                 GRID = siGrid
-                DEF_CELLNAME_CHINESE = user[8]
-                FAULT_DESCRIPTION = '用户占用小区' + DEF_CELLNAME_CHINESE + '用户弱覆盖'
+                DEF_CELLNAME_CHINESE = cuDefCellnameChinese
+                FAULT_DESCRIPTION = '用户占用小区' + DEF_CELLNAME_CHINESE + '由于' + TYPE3 + '导致投诉'
                 LABEL = '原因定界'
-                THOUR = user[4]
+                THOUR = cuHour
                 CH_RAT = None
                 TOPN = None
                 PRI = None
@@ -731,10 +765,11 @@ def updatePropertiesDbCs(dbPool):
             print('There is no data in table IMPORT_Complain_CONFIG!')
 
     print('pdcList = ', pdcList)
-    print('pdcList length = ', len(pdcList))
 
     # pdcList 插入到  properties_db_cs
-    dbPool.insertBatch(pdcList, 'properties_db_cs')
+    if len(pdcList) > 0:
+        if dbPool.insertBatch(pdcList, 'properties_db_cs'):
+            dbPool.update("update Complain_User set status = 1 where status is null ")
 
     # 然后更新Complain_User
     #  的 status 为 1
@@ -743,15 +778,16 @@ def updatePropertiesDbCs(dbPool):
 
 
 def main(dbtype):
+    """主函数"""
     dbPool = PyDBPool(dbtype)
 
     # 数据预处理
     # 通过 Complain_OTT 更新(插入) properties_db_area/properties_db_OTT
     updatePropertiesDbAreaAndOTT(dbPool)
 
-    # 通过 Complain_User 更新(插入) properties_db_cs
+    # # 通过 Complain_User 更新(插入) properties_db_cs
     updatePropertiesDbCs(dbPool)
-
+    #
     # 获取所有工单号
     complainTaskIDList = getComplainTaskID(dbPool)
     print(complainTaskIDList)

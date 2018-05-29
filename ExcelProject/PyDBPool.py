@@ -69,7 +69,7 @@ class PyDBPool:
     def getDBConn(self, dbclassify):
         if dbclassify == 'mysql':
             if PyDBPool.__pool is None:
-                __pool = PooledDB(creator=pymysql, mincached=1, maxcached=20, host=mysqlInfo['host'],
+                __pool = PooledDB(creator=pymysql, mincached=1, maxcached=10, host=mysqlInfo['host'],
                                   user=mysqlInfo['user'], passwd=mysqlInfo['passwd'], db=mysqlInfo['dbname'],
                                   port=mysqlInfo['port'], charset=mysqlInfo['charset'])
                 print("mysql数据库连接池创建成功！")
@@ -89,11 +89,24 @@ class PyDBPool:
         self.cursor.close()
         self.conn.close()
 
+    # 统计表记录数
+    def count(self, sql):
+        sqlCount = re.sub(r".*select(.*)from\s+", 'select count(*) from ', sql)
+        count = self.select(sqlCount)[0][0]
+
+        print('count = ', count)
+        return count
+
     # 插入/更新/删除sql
     def update(self, sql):
-        print("sql = ", sql)
+        """
+        插入/更新/删除 操作统一通过update函数来实现,
+        :param sql: 操作sql
+        :return: 操作成功返回True,操作失败返回False
+        """
+        print("sql = ", [sql])
         try:
-            num = self.cursor.execute(sql.replace('None','null'))
+            self.cursor.execute(sql.replace('None', 'null'))
             if sql[0] == 'd':
                 print("数据删除成功！")
             elif sql[0] == 'i':
@@ -102,15 +115,27 @@ class PyDBPool:
                 print("更新操作执行成功！")
             self.conn.commit()
 
-            return num
+            return True
         except Exception as e:
             print(e)
+            return False
 
     # 批量插入[[],[],[],[]...]
     def insertBatch(self, batchList, tableName):
-        for row in batchList:
-            insertSql = "insert into %s values(%s)" % (tableName, str(row)[1:][:-1])
-            self.update(insertSql.replace('None', 'null'))
+        """
+        批量插入列表数据 列表形式-> [[],[],[],[]...]
+        :param batchList: 嵌套列表
+        :param tableName: 插入数据库的表明
+        :return: 操作成功返回True,操作失败返回False
+        """
+        try:
+            for row in batchList:
+                insertSql = "insert into %s values(%s)" % (tableName, str(row)[1:][:-1])
+                self.update(insertSql.replace('None', 'null'))
+            return True
+        except Exception as e:
+            print("批量插入过程异常:", e)
+            return False
 
     def timeCal(select):
         def wrapper(*args, **kwargs):
@@ -126,15 +151,22 @@ class PyDBPool:
     # 查询(1) 查询记录数 (2) sql Noe查询返回满足条件的所有记录  (3) 查询返回满足条件的所有记录
     # fetch 三种方式 count  one  all
     # 默认返回单条记录
-    # @timeCal   # 先临时查询所有
+    # 每select many 一次 创建一个流式游标 https://www.cnblogs.com/baiyangcao/p/pymssql_basic.html
+    @timeCal  # 先临时查询所有
     def select(self, sql, fetch='all'):
-        self.cursor.execute(sql)
+        print('select_sql = ', [sql])
+
         if fetch == 'one':
+            self.cursor.execute(sql)
             return self.cursor.fetchone()
+
+        elif fetch == "many":  # 对表切片时 返回流式游标
+            self.cursor.execute(sql)
+            return self.cursor
+
         elif fetch == 'all':
+            self.cursor.execute(sql)
             return self.cursor.fetchall()
-        elif fetch == 'count':
-            return self.cursor.fetchone()[0]
 
     #
     # def sqlserver(param):
@@ -161,16 +193,22 @@ class PyDBPool:
 
 
 if __name__ == '__main__':
-    dbpool = PyDBPool('mysql')
+    dbpool = PyDBPool('mssql')
     print(dbpool)
+
+    # dbpool1 = PyDBPool('mssql')
+    # print(dbpool1)
+    #
+    # if dbpool.update("insert into nfj"):
+    #     print("操作成功!")
 
     """
     批量插入
     """
     # None 不能入库  数据库对应的是NULL
-    batchList = [[433, '试试', 12], [444, '事宜', 13], [455,None,14]]
+    # batchList = [[433, '试试', 12], [444, '事宜', 13], [455, None, 14]]
     # batchList = [[45, None, 14], [46, None, 17]]
-    dbpool.insertBatch(batchList, 'tt')
+    # dbpool.insertBatch(batchList, 'tt')
 
     # sql = "select ID,DEF_C        ELLNAME from PROPERTIES_DB limit 1000"
     # t1 = time.time()
@@ -182,7 +220,7 @@ if __name__ == '__main__':
     # print(dbpool.select(sql, 'one'))  # timeInterval:  0.03125286102294922
 
     """
-        切片
+        切片1
     """
     # step = 1000
     # loopNums, cursor = dbpool.tableSlice(sql, step)
@@ -196,6 +234,150 @@ if __name__ == '__main__':
     # time.sleep(1)
     # stepList  todo
 
+    """
+    切片2
+    """
+    # sql = "select top 100000 * from dbo.manager_task_detail"
+    # cursor = dbpool.select("select top 100000 TYPE3,LEVEL_R from dbo.properties_db", 'many')
+    # while True:
+    #     re = cursor.fetchmany(10000)
+    #     if len(re) > 0:
+    #         print(len(re))
+    #         print(re)
+    #         # re todo
+    #     else:
+    #         break
+
+    """
+       多表关联未切片测试  1000 条  过滤出6条
+    """
+
+    # tableIR = dbpool.select("select top 1000 reason,level_r from dbo.import_reason")
+    # tablePD = dbpool.select("select top 1000 TYPE3,LEVEL_R from dbo.properties_db")
+    #
+    # irList = []
+    # for ir in tableIR:
+    #     irReason = ir[0]
+    #     irLevelR = ir[1]
+    #
+    #     for pd in tablePD:
+    #         pdType3 = pd[0]
+    #         pdLevelR = pd[1]
+    #
+    #         if (irReason == pdType3) and (irLevelR == pdLevelR):
+    #             irList.append(ir)
+    #
+    # print(len(irList))
+
+    # result = dbpool.select("select top 10 ir.reason,pd.TYPE3 ,ir.level_r ,pd.LEVEL_R from dbo.import_reason as ir inner join properties_db as pd on ir.reason = pd.TYPE3 and ir.level_r = pd.LEVEL_R")
+    # print(result)
+
+    """
+    单表切片 测试
+    """
+    # tableIRCursor = dbpool.select(
+    #     "select top 10 convert(nvarchar(255),reason) as reason,convert(nvarchar(255),level_r) as level_r from dbo.import_reason",
+    #     'many')
+    #
+    # while True:
+    #     tableIR = tableIRCursor.fetchmany(2)
+    #     if len(tableIR) > 0:
+    #         print('tableIR = ', tableIR)
+    #     else:
+    #         break
+
+    """
+    多表关联切片测试
+    
+    流动游标只能有一个!!! 第二个会覆盖第一个的结果!!!
+    一个连接一次只能有一个游标的查询处于活跃状态 ,一个连接即使创建多个游标对象也是无效的!
+    
+    https://www.cnblogs.com/baiyangcao/p/pymssql_basic.html
+    
+    cursor就是一个Cursor对象，这个cursor是一个实现了迭代器（def__iter__()）和生成器（yield）的MySQLdb对象，
+    这个时候cursor中还没有数据，只有等到fetchone()或fetchall()的时候才返回一个元组tuple，才支持len()和index()操作，
+    这也是它是迭代器的原因。但同时为什么说它是生成器呢？因为cursor只能用一次，即每用完一次之后记录其位置，
+    等到下次再取的时候是从游标处再取而不是从头再来，而且fetch完所有的数据之后，这个cursor将不再有使用价值了，
+    即不再能fetch到数据了。
+    
+    
+    python读取几千万行的大表内存问题
+    https://blog.csdn.net/luckyzhou_/article/details/69061621
+    
+    
+    """
+    # tableIRCursor = dbpool.select(
+    #     "select top 10 convert(nvarchar(255),reason) as reason,convert(nvarchar(255),level_r) as level_r from dbo.import_reason",
+    #     'many')
+    # tablePDCursor = dbpool1.select(
+    #     "select top 10 convert(nvarchar(255),TYPE3) as TYPE3,convert(nvarchar(255),LEVEL_R) as LEVEL_R from dbo.properties_db",
+    #     'all')
+    #
+    # print('tableIRCursor', tableIRCursor)
+    # print('tablePDCursor', tablePDCursor)
+    #
+    # print(tableIRCursor == tablePDCursor)
+    #
+    # print('tableIR = ', tableIRCursor.fetchmany(5))
+    # print('tableIR = ', tableIRCursor.fetchmany(2))
+    # print('tablePD = ', tablePDCursor.fetchmany(2))
+    # print('tablePD = ', tablePDCursor.fetchmany(1))
+
+    #     irList = []
+    #
+    #     indexinner = 1
+    #     indexouter = 1
+    #
+    #     while True:
+    #         tableIR = tableIRCursor.fetchmany(2)
+    #         if len(tableIR) > 0:
+    #             print('外层IR = ', tableIR)
+    #             for ir in tableIR:
+    #                 irReason = ir[0]
+    #                 irLevelR = ir[1]
+    #                 print('----indexouter = ', indexouter)
+    #
+    #                 while True:
+    #                 # 内层循环完成一次  游标归零 没有类似api   cursor 完成一次遍历 就被废弃了
+    #                     scroll(0,'absolute')
+    #
+    #                 # !!!
+    #                     tablePD = tablePDCursor.fetchall()
+    #                     if len(tablePD) > 0:
+    #                         # print('内层pd = ', tablePDCursor)
+    #                         for pd in tablePD:
+    #                             print('indexinner = ', indexinner)
+    #                             pdType3 = pd[0]
+    #                             pdLevelR = pd[1]
+    #
+    #                             if (irReason == pdType3) and (irLevelR == pdLevelR):
+    #                                 print('----------------------flag')
+    #                                 irList.append(ir)
+    #                             indexinner += 1
+    #                     else:
+    #                         break
+    #
+    #             indexouter += 1
+    #         else:
+    #             break
+    #
+    # print(len(irList))
+
+    # print(dbpool.select("select top 10 TYPE3,LEVEL_R from dbo.properties_db"))
+
+    # irCursor = dbpool.select("select top 100 * from dbo.import_reason",'many')
+
+    # while True:
+    #     re = dbpool.select("select top 10000 * from dbo.manager_task_detail", 'many').fetchmany(100)
+    #     if len(re) > 0:
+    #         print(re)
+    #         # re todo
+    #     else:
+    #         break
+
+    # while True:
+    #     print(re)
+
     # insertSql = "insert into tt(name,age) values ('zansa',12)"
     # updateSql = "update tt set name  = 'lisi' where id = 33"
     # deleteSql = "delete from tt where id = 31"
@@ -208,3 +390,4 @@ if __name__ == '__main__':
     # todo
     # 释放资源
     dbpool.close()
+# dbpool1.close()
