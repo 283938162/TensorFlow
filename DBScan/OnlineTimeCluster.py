@@ -3,7 +3,7 @@ import sklearn.cluster as skc
 from sklearn import metrics
 import matplotlib.pyplot as plt
 
-filePath = '/Users/anus/PycharmProjects/TensorFlow/DBScan/学生月上网时间分布-TestData.txt'
+filePath = 'D:\WorkSpace\PycharmProjects\TensorFlow\DBScan\学生月上网时间分布-TestData.txt'
 mac2id = dict()
 online_times = []
 f = open(filePath, encoding='utf-8')

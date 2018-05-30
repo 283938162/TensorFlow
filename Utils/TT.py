@@ -189,5 +189,45 @@ tt = [[45, None, 14], [46, None, 17]]
 # print(a[::-1])
 # print(c[::-1])
 
-olist = [(1,2),(3,4)]
-print([list(i) for i in olist])
+# olist = [(1,2),(3,4)]
+# print([list(i) for i in olist])
+
+
+# a,b = (110.0123, 23.32435)
+# print(a)
+# print(b)
+
+# import os, sys, time
+#
+# print(sys.argv[:]) # ['D:/WorkSpace/PycharmProjects/TensorFlow/Utils/TT.py']
+# print(len(sys.argv[:])) # ['D:/WorkSpace/PycharmProjects/TensorFlow/Utils/TT.py']
+#
+# print(sys.argv[0]) # D:/WorkSpace/PycharmProjects/TensorFlow/Utils/TT.py
+
+import numpy as np
+
+# l = np.array([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+# print(l)
+#
+# X = l[:, 1:3]
+# print(X)
+#
+# x1 = X[:, 0].mean()
+# y1 = X[:, 1].mean()
+#
+# print(x1)
+# print(y1)
+
+# l.extend([''] * 2)
+# print(l)
+
+
+labels = [-1,0,2,3,-1,2]
+
+
+nums = len(labels)
+num = (1 if -1 in labels else 0)
+print(nums)
+print(num)
+
+print(nums - num)

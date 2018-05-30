@@ -3,6 +3,8 @@ import os, sys, time
 import numpy as np
 from scipy.spatial.distance import pdist, squareform, euclidean
 from sklearn.cluster import DBSCAN
+from sklearn import metrics
+import matplotlib.pyplot as plt
 from PyDBPool import PyDBPool
 from Logger import Logger
 
@@ -78,6 +80,10 @@ def haversine2(lonlat1, lonlat2):
     return c
 
 
+# c = haversine2((110.0123, 23.32435), (129.1344, 25.5465))
+# print(c)
+
+
 def loadSample():
     olist = []
     harr = []
@@ -105,20 +111,20 @@ def loadSample():
     return olist, lonindex, latindex
 
 
-dbpool = PyDBPool()
-def get_olist(type1, type2, ttime):
-    olist = dbpool.select(
-        "SELECT DISTINCT cast(NULL AS VARCHAR(200)) AS area_id,p.DEF_CELLNAME,p.def_cellname_chinese,s.LATITUDE AS lat,s.LONGITUDE AS lon,cast(0 AS INT) AS is_area_evaluated FROM PROPERTIES_DB p JOIN SITE_INFO s ON p.DEF_CELLNAME = s.DEF_CELLNAME WHERE p.type1 = '%s' AND p.type2 = '%s' AND p.ttime = '%s' AND ISNUMERIC(s.LATITUDE) = 1 AND ISNUMERIC(s.LONGITUDE) = 1" % (
-            type1, type2, ttime))
-    return [list(i) for i in olist]
-
-type1 = 'MR'
-type2 = '覆盖'
-ttime = '2015-12-04'
-olist = get_olist(type1, type2, ttime)
-# print()
-print(np.array(olist))
-dbpool.close()
+# dbpool = PyDBPool()
+# def get_olist(type1, type2, ttime):
+#     olist = dbpool.select(
+#         "SELECT DISTINCT cast(NULL AS VARCHAR(200)) AS area_id,p.DEF_CELLNAME,p.def_cellname_chinese,s.LATITUDE AS lat,s.LONGITUDE AS lon,cast(0 AS INT) AS is_area_evaluated FROM PROPERTIES_DB p JOIN SITE_INFO s ON p.DEF_CELLNAME = s.DEF_CELLNAME WHERE p.type1 = '%s' AND p.type2 = '%s' AND p.ttime = '%s' AND ISNUMERIC(s.LATITUDE) = 1 AND ISNUMERIC(s.LONGITUDE) = 1" % (
+#             type1, type2, ttime))
+#     return [list(i) for i in olist]
+#
+# type1 = 'MR'
+# type2 = '覆盖'
+# ttime = '2015-12-04'
+# olist = get_olist(type1, type2, ttime)
+# # print()
+# print(np.array(olist))
+# dbpool.close()
 
 
 def cal_cluster(olist, lonindex, latindex, min_point=6, min_dist=500):
@@ -128,31 +134,37 @@ def cal_cluster(olist, lonindex, latindex, min_point=6, min_dist=500):
     X = np.stack([narr[:, lonindex], narr[:, latindex]], axis=-1)
     X = X.astype(np.float64)
 
-    x1 = X[:, 0].mean()
-    y1 = X[:, 1].mean()
+    x1 = X[:, 0].mean()  # 所有经度的均值
+    y1 = X[:, 1].mean()  # 所有维度的均值
+
     print(x1, y1)
 
     eps_fix = eps_lonlat(x1, y1, min_dist)
     print("eps:", eps_fix)
 
     y_db = DBSCAN(eps=eps_fix, min_samples=min_point).fit(X)
-    X_lable = y_db.labels_
+    labels = y_db.labels_
 
-    print
-    len(set(X_lable)) - 1
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    print('Estimated number of clusters: %d' % n_clusters_)  # estimated  估计的 预计的
+    print("Silhouette Coefficient: %0.3f" % metrics.silhouette_score(X, labels))  # 轮廓系数（Silhouette Coefficient）
+
     print("run cost:", time.time() - start1)
-    return X_lable
+    plt.scatter(X[:, 0], X[:, 1], c=labels)
+    plt.show()
+    return labels
 
-# if __name__ == "__main__":
-#     optarr = sys.argv[:]
-#
-#     if len(optarr) >= 6:
-#         X_lable = cal_cluster(optarr[1], optarr[2], optarr[3], optarr[4], optarr[5])
-#     else:
-#         olist, lonindex, latindex = loadSample()
-#         X_lable = cal_cluster(olist, lonindex, latindex, 5, 500)
-#
-#         if len(X_lable):
-#             with open("tmpout_%s.txt" % time.strftime("%Y%m%d_%H%M%S", time.localtime()), "w") as fp:
-#                 for item in X_lable:
-#                     fp.write("%s\n" % item)
+
+if __name__ == "__main__":
+    optarr = sys.argv[:]
+
+    if len(optarr) >= 6:
+        X_lable = cal_cluster(optarr[1], optarr[2], optarr[3], optarr[4], optarr[5])
+    else:
+        olist, lonindex, latindex = loadSample()
+        X_lable = cal_cluster(olist, lonindex, latindex, 5, 500)
+
+        if len(X_lable):
+            with open("tmpout_%s.txt" % time.strftime("%Y%m%d_%H%M%S", time.localtime()), "w") as fp:
+                for item in X_lable:
+                    fp.write("%s\n" % item)
